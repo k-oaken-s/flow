@@ -1,13 +1,14 @@
-import React from 'react'
-import { createRoot } from 'react-dom/client'
-import App from './App'
+const ReactDOM = require('react-dom/client');
+const App = require('./App').default;
 
-const container = document.getElementById('root')
-if (container) {
-    const root = createRoot(container)
-    root.render(
-        <React.StrictMode>
-            <App />
-        </React.StrictMode>
+require('./styles/global.css');
+
+const root = ReactDOM.createRoot(
+    document.getElementById('root') as HTMLElement
+);
+
+root.render(
+    React.createElement(React.StrictMode, null,
+        React.createElement(App)
     )
-}
+);

@@ -1,13 +1,12 @@
 {
   "name": "flow",
   "version": "1.0.0",
-  "main": "./dist/main/main.js", 
+  "main": "./main.js",
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc -w",
-    "start": "npm run build && electron .",
-    "dev": "npm run build && concurrently \"npm run watch\" \"electron .\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:css": "npx tailwindcss -i ./src/renderer/styles/global.css -o ./dist/styles/global.css",
+    "build:app": "esbuild src/renderer/app.tsx --bundle --outfile=dist/app.js --platform=browser --target=chrome90",
+    "build": "npm run build:css && npm run build:app",
+    "start": "npm run build && electron ."
   },
   "repository": {
     "type": "git",
@@ -25,9 +24,13 @@
     "@types/node": "^22.13.1",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
+    "autoprefixer": "^10.4.20",
     "concurrently": "^9.1.2",
     "electron": "^34.0.2",
     "electron-builder": "^25.1.8",
+    "esbuild": "^0.24.2",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^4.0.3",
     "typescript": "^5.7.3"
   },
   "dependencies": {
