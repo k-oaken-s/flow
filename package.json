@@ -4,13 +4,12 @@
   "main": "./main.js",
   "scripts": {
     "clean": "rm -rf dist && mkdir -p dist/styles",
-    "build:css": "npx tailwindcss -i ./src/renderer/styles/global.css -o ./dist/styles/global.css --minify",
+    "build:css": "npx tailwindcss -i ./src/renderer/styles/global.css -o ./dist/styles/global.css --postcss",
     "build:app": "esbuild src/renderer/app.tsx --bundle --outfile=dist/app.js --platform=browser",
     "build": "npm run clean && npm run build:css && npm run build:app",
-    "start": "npm run build && electron .",
-    "watch:css": "npx tailwindcss -i ./src/renderer/styles/global.css -o ./dist/styles/global.css --watch",
+    "watch:css": "npx tailwindcss -i ./src/renderer/styles/global.css -o ./dist/styles/global.css --watch --postcss",
     "watch:app": "esbuild src/renderer/app.tsx --bundle --outfile=dist/app.js --platform=browser --watch",
-    "dev": "npm run clean && concurrently \"npm run watch:css\" \"npm run watch:app\" \"electron .\""
+    "dev": "npm run build && concurrently \"npm run watch:css\" \"npm run watch:app\" \"electron .\""
   },
   "repository": {
     "type": "git",
@@ -36,7 +35,7 @@
     "electron-reloader": "^1.2.3",
     "esbuild": "^0.24.2",
     "postcss": "^8.5.1",
-    "tailwindcss": "^4.0.3",
+    "tailwindcss": "^3.4.1",
     "typescript": "^5.7.3"
   },
   "dependencies": {

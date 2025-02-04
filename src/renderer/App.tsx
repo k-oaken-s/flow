@@ -1,11 +1,14 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import Sidebar from './components/Sidebar';
+import MainContent from './components/MainContent';
+import './styles/global.css';
 
 const App = () => {
     return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">Flow</h1>
-            <p className="text-gray-600">Video Management Application</p>
+        <div className="flex h-screen bg-gray-100">
+            <Sidebar />
+            <MainContent />
         </div>
     );
 };

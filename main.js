@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, protocol } = require('electron')
 const path = require('path')
 
 // Enable hot reload
@@ -8,17 +8,34 @@ require('electron-reload')(__dirname, {
 });
 
 function createWindow() {
+  // プロトコルの設定
+  protocol.registerFileProtocol('file', (request, callback) => {
+    const url = request.url.replace('file:///', '')
+    try {
+      return callback(decodeURIComponent(path.join(__dirname, url)))
+    } catch (error) {
+      console.error('ERROR:', error)
+      return callback(404)
+    }
+  })
+
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      webSecurity: false  // ローカルファイルへのアクセスを許可
     }
   })
 
   win.loadFile('index.html')
   win.webContents.openDevTools()
+
+  // デバッグ用：読み込みエラーをキャッチ
+  win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.log('Failed to load:', errorCode, errorDescription)
+  })
 }
 
 app.whenReady().then(() => {
