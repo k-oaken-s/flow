@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "main": "./main.js",
   "scripts": {
-    "build:css": "npx tailwindcss -i ./src/renderer/styles/global.css -o ./dist/styles/global.css",
-    "build:app": "esbuild src/renderer/app.tsx --bundle --outfile=dist/app.js --platform=browser --target=chrome90",
-    "build": "npm run build:css && npm run build:app",
-    "start": "npm run build && electron ."
+    "clean": "rm -rf dist && mkdir -p dist/styles",
+    "build:css": "npx tailwindcss -i ./src/renderer/styles/global.css -o ./dist/styles/global.css --minify",
+    "build:app": "esbuild src/renderer/app.tsx --bundle --outfile=dist/app.js --platform=browser",
+    "build": "npm run clean && npm run build:css && npm run build:app",
+    "start": "npm run build && electron .",
+    "watch:css": "npx tailwindcss -i ./src/renderer/styles/global.css -o ./dist/styles/global.css --watch",
+    "watch:app": "esbuild src/renderer/app.tsx --bundle --outfile=dist/app.js --platform=browser --watch",
+    "dev": "npm run clean && concurrently \"npm run watch:css\" \"npm run watch:app\" \"electron .\""
   },
   "repository": {
     "type": "git",
@@ -28,6 +32,8 @@
     "concurrently": "^9.1.2",
     "electron": "^34.0.2",
     "electron-builder": "^25.1.8",
+    "electron-reload": "^2.0.0-alpha.1",
+    "electron-reloader": "^1.2.3",
     "esbuild": "^0.24.2",
     "postcss": "^8.5.1",
     "tailwindcss": "^4.0.3",

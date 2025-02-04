@@ -1,6 +1,12 @@
 const { app, BrowserWindow } = require('electron')
 const path = require('path')
 
+// Enable hot reload
+require('electron-reload')(__dirname, {
+  electron: path.join(__dirname, 'node_modules', '.bin', 'electron'),
+  hardResetMethod: 'exit'
+});
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
@@ -11,20 +17,7 @@ function createWindow() {
     }
   })
 
-  // プロジェクトルートのindex.htmlを指定
-  const indexPath = path.join(__dirname, 'index.html')
-  console.log('Loading index from:', indexPath)
-  
-  // デバッグ用：ファイルの存在確認
-  const fs = require('fs')
-  if (fs.existsSync(indexPath)) {
-    console.log('index.html exists at:', indexPath)
-  } else {
-    console.log('index.html not found at:', indexPath)
-    console.log('Current directory:', __dirname)
-  }
-
-  win.loadFile('index.html')  // 相対パスで指定
+  win.loadFile('index.html')
   win.webContents.openDevTools()
 }
 
