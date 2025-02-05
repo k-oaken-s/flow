@@ -1,40 +1,42 @@
-const { app, BrowserWindow, protocol } = require('electron')
+const { app, BrowserWindow, dialog, ipcMain } = require('electron')
 const path = require('path')
 
-// Enable hot reload
 require('electron-reload')(__dirname, {
   electron: path.join(__dirname, 'node_modules', '.bin', 'electron'),
   hardResetMethod: 'exit'
 });
 
 function createWindow() {
-  // プロトコルの設定
-  protocol.registerFileProtocol('file', (request, callback) => {
-    const url = request.url.replace('file:///', '')
-    try {
-      return callback(decodeURIComponent(path.join(__dirname, url)))
-    } catch (error) {
-      console.error('ERROR:', error)
-      return callback(404)
-    }
-  })
-
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false,
-      webSecurity: false  // ローカルファイルへのアクセスを許可
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js')
     }
   })
 
   win.loadFile('index.html')
   win.webContents.openDevTools()
 
-  // デバッグ用：読み込みエラーをキャッチ
-  win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.log('Failed to load:', errorCode, errorDescription)
+  // ファイル選択ダイアログを処理
+  ipcMain.handle('select-files', async () => {
+    const result = await dialog.showOpenDialog(win, {
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        { name: 'Videos', extensions: ['mp4', 'avi', 'mkv', 'mov', 'wmv'] }
+      ]
+    })
+    return result.filePaths
+  })
+
+  // フォルダ選択ダイアログを処理
+  ipcMain.handle('select-folder', async () => {
+    const result = await dialog.showOpenDialog(win, {
+      properties: ['openDirectory']
+    })
+    return result.filePaths[0]
   })
 }
 

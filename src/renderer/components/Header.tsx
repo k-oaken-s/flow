@@ -1,20 +1,17 @@
 import React from 'react';
+import FileSelector from './FileSelector';
 
 const Header: React.FC = () => {
     return (
-        <div className="h-16 bg-white border-b flex items-center justify-between px-6">
+        <div className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6">
             <div className="flex items-center">
                 <input
                     type="text"
                     placeholder="検索..."
-                    className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
             </div>
-            <div>
-                <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-                    動画を追加
-                </button>
-            </div>
+            <FileSelector />
         </div>
     );
 };
