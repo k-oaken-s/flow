@@ -11,6 +11,7 @@ interface ElectronAPI {
   updateVideoMetadata: (id: string, metadata: any, thumbnails: string[]) => Promise<void>;
   retryThumbnails: (id: string) => Promise<void>;
   openVideo: (path: string) => Promise<void>;
+  incrementPlayCount: (id: string) => Promise<void>;
   
   // ファイルシステム操作
   readFile: (filePath: string) => Promise<Uint8Array>;
@@ -42,7 +43,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
   updateVideoMetadata: (id: string, metadata: any, thumbnails: string[]) => 
     ipcRenderer.invoke('update-video-metadata', id, metadata, thumbnails),
-
+  openVideo: (path: string) => ipcRenderer.invoke('open-video', path),
+  incrementPlayCount: (videoId: string) => ipcRenderer.invoke('increment-play-count', videoId),
   // イベントリスナー
   onVideosUpdated: (callback: () => void) => {
     const subscription = () => callback();
@@ -58,7 +60,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('thumbnail-progress', subscription);
     };
   },
-  openVideo: (path: string) => ipcRenderer.invoke('open-video', path),
 
   // ファイルシステム操作
   mkdir: (path: string) => ipcRenderer.invoke('mkdir', path),

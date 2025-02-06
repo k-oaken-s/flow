@@ -31,6 +31,7 @@ interface ElectronAPI extends FileSystemAPI {
     thumbnails: string[]
   ) => Promise<void>;
   retryThumbnails: (id: string) => Promise<void>;
+  incrementPlayCount: (videoId: string) => Promise<boolean>;
 
   // イベント
   onThumbnailProgress: (

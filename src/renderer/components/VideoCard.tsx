@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { VideoFile } from '../../types/store';
+import { formatDate } from '../utils/date';
 
 interface VideoCardProps {
     video: VideoFile;
     onDelete: (id: string) => void;
     onRetry: (id: string) => void;
+    onUpdated: () => void;
 }
 
-const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry }) => {
+const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdated }) => {
     const [currentThumbnail, setCurrentThumbnail] = useState(0);
 
     useEffect(() => {
@@ -38,6 +40,8 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry }) => {
     const handleOpenVideo = async () => {
         try {
             await window.electronAPI.openVideo(video.path);
+            await window.electronAPI.incrementPlayCount(video.id);
+            onUpdated();
         } catch (error) {
             console.error('Error opening video:', error);
         }
@@ -54,6 +58,14 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry }) => {
                 <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-4">
                     <span>{video.metadata?.duration ? formatDuration(video.metadata.duration) : '--:--'}</span>
                     <span>{formatFileSize(video.fileSize)}</span>
+                </div>
+
+                <div className="flex flex-col">
+                    <span>追加日時: {formatDate(video.added)}</span>
+                    {video.lastPlayed && (
+                        <span>最終再生日時: {formatDate(video.lastPlayed)}</span>
+                    )}
+                    <span>再生回数: {video.playCount || 0}回</span>
                 </div>
 
                 {/* サムネイル表示エリア */}

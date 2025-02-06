@@ -7,28 +7,45 @@ const MainContent: React.FC = () => {
     const [videos, setVideos] = useState<VideoFile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    const [sortBy, setSortBy] = useState<'filename' | 'added' | 'playCount'>('added');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
     const loadVideos = async () => {
         try {
             setIsLoading(true);
-            console.log('Attempting to get videos', window.electronAPI); // デバッグログ
+            let videoList = await window.electronAPI.getVideos();
 
-            // windowオブジェクトとgetVideosメソッドの存在を確認
-            if (!window.electronAPI || typeof window.electronAPI.getVideos !== 'function') {
-                console.error('getVideos method is not available');
-                setVideos([]);
-                return;
-            }
+            // 並び替え
+            videoList = [...videoList].sort((a, b) => {
+                let comparison = 0;
+                switch (sortBy) {
+                    case 'filename':
+                        comparison = a.filename.localeCompare(b.filename);
+                        break;
+                    case 'playCount':
+                        comparison = (b.playCount || 0) - (a.playCount || 0);
+                        break;
+                    case 'added':
+                    default:
+                        comparison = b.added - a.added;
+                        break;
+                }
+                return sortOrder === 'asc' ? -comparison : comparison;
+            });
 
-            const videoList = await window.electronAPI.getVideos();
-            console.log('Retrieved videos:', videoList); // デバッグログ
             setVideos(videoList);
         } catch (error) {
             console.error('Error loading videos:', error);
-            setVideos([]); // エラー時に空の配列をセット
+            setVideos([]);
         } finally {
             setIsLoading(false);
         }
     };
+
+    useEffect(() => {
+        loadVideos();
+    }, [sortBy, sortOrder]);
+
 
     useEffect(() => {
         loadVideos();
@@ -77,6 +94,28 @@ const MainContent: React.FC = () => {
     return (
         <div className="flex flex-col flex-1 h-screen bg-gray-50 dark:bg-gray-900">
             <Header onVideosUpdated={loadVideos} />
+
+            {/* ソートコントロール */}
+            <div className="px-6 py-2 flex justify-end space-x-2">
+                <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                    className="px-3 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg"
+                >
+                    <option value="added">追加日時</option>
+                    <option value="filename">ファイル名</option>
+                    <option value="playCount">再生回数</option>
+                </select>
+                <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
+                    className="px-3 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg"
+                >
+                    <option value="desc">降順</option>
+                    <option value="asc">昇順</option>
+                </select>
+            </div>
+
             <div className="flex-1 p-6 overflow-auto">
                 {isLoading ? (
                     <div className="flex items-center justify-center h-full">
@@ -101,6 +140,7 @@ const MainContent: React.FC = () => {
                                 video={video}
                                 onDelete={handleDeleteVideo}
                                 onRetry={handleRetry}
+                                onUpdated={loadVideos}
                             />
                         ))}
                     </div>

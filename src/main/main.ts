@@ -336,15 +336,30 @@ function setupIpcHandlers() {
     }
   });
 
-  ipcMain.handle('open-video', async (_, path) => {
-    try {
+ // 動画を開くハンドラーを追加
+ ipcMain.handle('open-video', async (_, path) => {
+  try {
       await shell.openPath(path);
       return true;
-    } catch (error) {
+  } catch (error) {
       console.error('Error opening video:', error);
       return false;
-    }
-  });
+  }
+});
+
+// 再生回数を更新するハンドラーも追加
+ipcMain.handle('increment-play-count', async (_, videoId) => {
+  try {
+      if (!storeManager) {
+          throw new Error('StoreManager not initialized');
+      }
+      await storeManager.incrementPlayCount(videoId);
+      return true;
+  } catch (error) {
+      console.error('Error incrementing play count:', error);
+      return false;
+  }
+});
 }
 
 function setupFfmpeg() {

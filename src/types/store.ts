@@ -14,6 +14,8 @@ export interface VideoFile {
   filename: string;
   added: number;
   fileSize: number;
+  playCount: number;
+  lastPlayed?: number;
   thumbnails?: string[];
   metadata?: VideoMetadata;
   processingStatus?: ProcessingStatus;

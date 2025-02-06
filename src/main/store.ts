@@ -3,13 +3,14 @@ import { statSync } from 'fs';
 import path from 'path';
 import type ElectronStore from 'electron-store';
 
-// 型定義
 export interface VideoFile {
     id: string;
     path: string;
     filename: string;
     added: number;
     fileSize: number;
+    playCount: number;
+    lastPlayed?: number;
     processingStatus: 'pending' | 'processing' | 'completed' | 'error';
     processingProgress?: number;
     metadata?: {
@@ -86,7 +87,8 @@ class StoreManager {
                     filename: path.basename(filePath),
                     added: Date.now(),
                     fileSize: stats.size,
-                    processingStatus: 'processing'
+                    processingStatus: 'processing',
+                    playCount: 0
                 };
 
                 newVideos.push(video);
@@ -187,6 +189,24 @@ class StoreManager {
         }
         const folders = this.getWatchFolders().filter(f => f.id !== id);
         this.store.set('watchFolders', folders);
+    }
+
+    incrementPlayCount(videoId: string): void {
+        if (!this.store) {
+            console.error('Store not initialized');
+            return;
+        }
+
+        const videos = this.getVideos();
+        const index = videos.findIndex(v => v.id === videoId);
+        if (index !== -1) {
+            videos[index] = {
+                ...videos[index],
+                playCount: (videos[index].playCount || 0) + 1,
+                lastPlayed: Date.now()
+            };
+            this.store.set('videos', videos);
+        }
     }
 }
 
