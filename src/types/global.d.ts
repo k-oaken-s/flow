@@ -18,6 +18,7 @@ interface ElectronAPI extends FileSystemAPI {
   selectFiles: () => Promise<VideoFile[]>;
   selectFolder: () => Promise<WatchFolder | null>;
   getUserDataPath: () => Promise<string>;
+  openVideo: (path: string) => Promise<boolean>;
   
   // データ操作
   getVideos: () => Promise<VideoFile[]>;

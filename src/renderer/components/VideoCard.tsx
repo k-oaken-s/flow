@@ -35,8 +35,18 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry }) => {
         return `${size.toFixed(1)} ${units[unitIndex]}`;
     };
 
+    const handleOpenVideo = async () => {
+        try {
+            await window.electronAPI.openVideo(video.path);
+        } catch (error) {
+            console.error('Error opening video:', error);
+        }
+    };
+
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+            onDoubleClick={handleOpenVideo}
+            style={{ cursor: 'pointer' }}>
             <div className="p-4">
                 <h3 className="font-medium text-gray-800 dark:text-white truncate mb-2" title={video.filename}>
                     {video.filename}

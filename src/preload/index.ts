@@ -10,6 +10,7 @@ interface ElectronAPI {
   removeWatchFolder: (id: string) => Promise<void>;
   updateVideoMetadata: (id: string, metadata: any, thumbnails: string[]) => Promise<void>;
   retryThumbnails: (id: string) => Promise<void>;
+  openVideo: (path: string) => Promise<void>;
   
   // ファイルシステム操作
   readFile: (filePath: string) => Promise<Uint8Array>;
@@ -57,6 +58,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('thumbnail-progress', subscription);
     };
   },
+  openVideo: (path: string) => ipcRenderer.invoke('open-video', path),
 
   // ファイルシステム操作
   mkdir: (path: string) => ipcRenderer.invoke('mkdir', path),

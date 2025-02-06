@@ -1,6 +1,6 @@
 import StoreManager from './store';
 
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');  // 追加
 const sharp = require('sharp'); 
@@ -333,6 +333,16 @@ function setupIpcHandlers() {
     } catch (error) {
       console.error('Error reading store:', error);
       return null;
+    }
+  });
+
+  ipcMain.handle('open-video', async (_, path) => {
+    try {
+      await shell.openPath(path);
+      return true;
+    } catch (error) {
+      console.error('Error opening video:', error);
+      return false;
     }
   });
 }
