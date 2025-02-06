@@ -25,3 +25,5 @@ if (container) {
         </React.StrictMode>
     );
 }
+
+export default App;

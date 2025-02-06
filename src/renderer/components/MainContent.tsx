@@ -1,52 +1,104 @@
 import React, { useEffect, useState } from 'react';
 import Header from './Header';
+import VideoCard from './VideoCard';
 import { VideoFile } from '../../types/store';
 
 const MainContent: React.FC = () => {
     const [videos, setVideos] = useState<VideoFile[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const loadVideos = async () => {
+        try {
+            setIsLoading(true);
+            console.log('Attempting to get videos', window.electronAPI); // デバッグログ
+
+            // windowオブジェクトとgetVideosメソッドの存在を確認
+            if (!window.electronAPI || typeof window.electronAPI.getVideos !== 'function') {
+                console.error('getVideos method is not available');
+                setVideos([]);
+                return;
+            }
+
+            const videoList = await window.electronAPI.getVideos();
+            console.log('Retrieved videos:', videoList); // デバッグログ
+            setVideos(videoList);
+        } catch (error) {
+            console.error('Error loading videos:', error);
+            setVideos([]); // エラー時に空の配列をセット
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
         loadVideos();
+
+        // プログレス更新のリスナーを設定
+        const unsubscribe = window.electronAPI.onThumbnailProgress(({ videoId, progress }) => {
+            setVideos(currentVideos =>
+                currentVideos.map(video =>
+                    video.id === videoId
+                        ? { ...video, processingProgress: progress }
+                        : video
+                )
+            );
+        });
+
+        return () => {
+            unsubscribe();
+        };
     }, []);
 
-    const loadVideos = async () => {
-        const videoList = await window.electronAPI.getVideos();
-        setVideos(videoList);
+    const handleDeleteVideo = async (id: string) => {
+        if (window.confirm('このビデオを削除してもよろしいですか？')) {
+            try {
+                await window.electronAPI.removeVideo(id);
+                await loadVideos();
+            } catch (error) {
+                console.error('Error deleting video:', error);
+            }
+        }
     };
 
-    const formatFileSize = (bytes: number) => {
-        const units = ['B', 'KB', 'MB', 'GB'];
-        let size = bytes;
-        let unitIndex = 0;
-        while (size >= 1024 && unitIndex < units.length - 1) {
-            size /= 1024;
-            unitIndex++;
+    const handleRetry = async (id: string) => {
+        try {
+            await window.electronAPI.retryThumbnails(id);
+            await loadVideos();
+        } catch (error) {
+            console.error('Error retrying thumbnails:', error);
         }
-        return `${size.toFixed(1)} ${units[unitIndex]}`;
     };
 
     return (
         <div className="flex flex-col flex-1 h-screen bg-gray-50 dark:bg-gray-900">
             <Header onVideosUpdated={loadVideos} />
             <div className="flex-1 p-6 overflow-auto">
-                <div className="grid grid-cols-4 gap-4">
-                    {videos.map((video) => (
-                        <div
-                            key={video.id}
-                            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                        <div className="text-gray-500 dark:text-gray-400">読み込み中...</div>
+                    </div>
+                ) : videos.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                        <p className="mb-4">動画が追加されていません</p>
+                        <button
+                            onClick={() => window.electronAPI.selectFiles()}
+                            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                         >
-                            <div className="aspect-video bg-gray-200 dark:bg-gray-700"></div>
-                            <div className="p-4">
-                                <h3 className="font-medium text-gray-800 dark:text-white truncate">
-                                    {video.filename}
-                                </h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                    {formatFileSize(video.fileSize)}
-                                </p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                            動画を追加
+                        </button>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {videos.map((video) => (
+                            <VideoCard
+                                key={video.id}
+                                video={video}
+                                onDelete={handleDeleteVideo}
+                                onRetry={handleRetry}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

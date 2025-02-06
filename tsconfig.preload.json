@@ -1,0 +1,11 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+      "module": "CommonJS",
+      "moduleResolution": "node",
+      "outDir": "./dist/preload",
+      "tsBuildInfoFile": "./dist/preload/tsconfig.tsbuildinfo"
+    },
+    "include": ["src/preload/**/*"],
+    "exclude": ["node_modules"]
+  }
