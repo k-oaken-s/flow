@@ -35,6 +35,13 @@ interface ElectronAPI extends FileSystemAPI {
   onThumbnailProgress: (
     callback: (data: ThumbnailProgress) => void
   ) => () => void;
+  onVideosUpdated: (callback: () => void) => () => void;
+
+  // デバッグ
+  debugStore: () => Promise<{
+    path: string;
+    content: any;
+  } | null>;
 }
 
 declare global {

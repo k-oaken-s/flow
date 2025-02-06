@@ -20,6 +20,10 @@ interface ElectronAPI {
 
   // イベント
   onThumbnailProgress: (callback: (data: { videoId: string; progress: number }) => void) => () => void;
+  onVideosUpdated: (callback: () => void) => () => void;
+
+  // デバッグ
+  debugStore: () => Promise<{ path: string; content: any } | null>;
 }
 
 declare global {
@@ -29,34 +33,37 @@ declare global {
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  // ファイルシステム操作
-  readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
-  writeFile: (filePath: string, data: Uint8Array) => ipcRenderer.invoke('write-file', filePath, data),
-  mkdir: (dirPath: string) => ipcRenderer.invoke('mkdir', dirPath),
-  unlink: (filePath: string) => ipcRenderer.invoke('unlink', filePath),
-  exists: (filePath: string) => ipcRenderer.invoke('file-exists', filePath),
-
-  // ファイル関連
+  // 既存のメソッド
   selectFiles: () => ipcRenderer.invoke('select-files'),
-  selectFolder: () => ipcRenderer.invoke('select-folder'),
-  getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
-  
-  // データ操作
   getVideos: () => ipcRenderer.invoke('get-videos'),
-  getWatchFolders: () => ipcRenderer.invoke('get-watch-folders'),
   removeVideo: (id: string) => ipcRenderer.invoke('remove-video', id),
-  removeWatchFolder: (id: string) => ipcRenderer.invoke('remove-watch-folder', id),
-  updateVideoMetadata: (
-    id: string, 
-    metadata: any, 
-    thumbnails: string[]
-  ) => ipcRenderer.invoke('update-video-metadata', id, metadata, thumbnails),
   retryThumbnails: (id: string) => ipcRenderer.invoke('retry-thumbnails', id),
+  getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
+  updateVideoMetadata: (id: string, metadata: any, thumbnails: string[]) => 
+    ipcRenderer.invoke('update-video-metadata', id, metadata, thumbnails),
 
-  // イベント
-  onThumbnailProgress: (callback: (data: { videoId: string; progress: number }) => void) => {
-    const listener = (_: any, data: { videoId: string; progress: number }) => callback(data);
-    ipcRenderer.on('thumbnail-progress', listener);
-    return () => ipcRenderer.removeListener('thumbnail-progress', listener);
-  }
+  // イベントリスナー
+  onVideosUpdated: (callback: () => void) => {
+    const subscription = () => callback();
+    ipcRenderer.on('videos-updated', subscription);
+    return () => {
+      ipcRenderer.removeListener('videos-updated', subscription);
+    };
+  },
+  onThumbnailProgress: (callback: (data: { videoId: string, progress: number }) => void) => {
+    const subscription = (_: any, data: any) => callback(data);
+    ipcRenderer.on('thumbnail-progress', subscription);
+    return () => {
+      ipcRenderer.removeListener('thumbnail-progress', subscription);
+    };
+  },
+
+  // ファイルシステム操作
+  mkdir: (path: string) => ipcRenderer.invoke('mkdir', path),
+  readFile: (path: string) => ipcRenderer.invoke('read-file', path),
+  writeFile: (path: string, data: Uint8Array) => ipcRenderer.invoke('write-file', path, data),
+  exists: (path: string) => ipcRenderer.invoke('exists', path),
+
+  // デバッグ
+  debugStore: () => ipcRenderer.invoke('debug-store'),
 });

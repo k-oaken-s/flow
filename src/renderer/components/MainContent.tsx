@@ -34,7 +34,11 @@ const MainContent: React.FC = () => {
         loadVideos();
 
         // プログレス更新のリスナーを設定
-        const unsubscribe = window.electronAPI.onThumbnailProgress(({ videoId, progress }) => {
+        const unsubscribeVideosUpdated = window.electronAPI.onVideosUpdated(() => {
+            loadVideos();
+        });
+        // プログレス更新のリスナーを設定
+        const unsubscribeProgress = window.electronAPI.onThumbnailProgress(({ videoId, progress }) => {
             setVideos(currentVideos =>
                 currentVideos.map(video =>
                     video.id === videoId
@@ -45,7 +49,8 @@ const MainContent: React.FC = () => {
         });
 
         return () => {
-            unsubscribe();
+            unsubscribeVideosUpdated();
+            unsubscribeProgress();
         };
     }, []);
 
@@ -88,7 +93,8 @@ const MainContent: React.FC = () => {
                         </button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    // グリッドを単一カラムのスタックレイアウトに変更
+                    <div className="space-y-6">
                         {videos.map((video) => (
                             <VideoCard
                                 key={video.id}

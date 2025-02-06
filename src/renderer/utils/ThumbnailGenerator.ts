@@ -1,110 +1,82 @@
-import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { VideoFile, ThumbnailSettings, VideoMetadata } from '../../types/store.js';
-import path from 'path';
+import { VideoFile } from "src/main/store";
+const ffmpeg = require('fluent-ffmpeg');
+const path = require('path');
+const fs = require('fs').promises;
 
 export class ThumbnailGenerator {
-  private ffmpeg: FFmpeg;
-  private thumbnailDir: string;
-  private isLoaded: boolean = false;
-
-  constructor(thumbnailDir: string) {
-    this.thumbnailDir = thumbnailDir;
-    this.ffmpeg = new FFmpeg();
-  }
+  constructor(private thumbnailDir: string) {}
 
   async init(): Promise<void> {
-    if (!this.isLoaded) {
-      await this.ffmpeg.load();
-      this.isLoaded = true;
-    }
+    await fs.mkdir(this.thumbnailDir, { recursive: true });
   }
 
-  async getVideoMetadata(videoPath: string): Promise<VideoMetadata> {
-    await this.init();
-
-    const videoData = await window.electronAPI.readFile(videoPath);
-    await this.ffmpeg.writeFile('input.mp4', videoData);
-
-    await this.ffmpeg.exec([
-      '-i', 'input.mp4',
-      '-v', 'quiet',
-      '-print_format', 'json',
-      '-show_format',
-      '-show_streams',
-      'output.json'
-    ]);
-
-    const outputData = await this.ffmpeg.readFile('output.json') as Uint8Array;
-    const info = JSON.parse(new TextDecoder().decode(outputData));
-    const videoStream = info.streams.find((s: any) => s.codec_type === 'video');
-
-    return {
-      duration: parseFloat(info.format.duration) || 0,
-      width: videoStream?.width || 0,
-      height: videoStream?.height || 0,
-      codec: videoStream?.codec_name || '',
-      bitrate: parseInt(info.format.bit_rate || '0', 10),
-    };
+  async getVideoMetadata(videoPath: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      ffmpeg.ffprobe(videoPath, (err: any, metadata: any) => {
+        if (err) reject(err);
+        else {
+          const { duration, width, height, bit_rate } = metadata.streams[0];
+          resolve({
+            duration,
+            width,
+            height,
+            bitrate: bit_rate,
+            codec: metadata.streams[0].codec_name
+          });
+        }
+      });
+    });
   }
 
   async generateThumbnails(
     video: VideoFile,
-    settings: ThumbnailSettings,
+    options: { maxCount: number; quality: number; width: number; height: number },
     onProgress?: (progress: number) => void
   ): Promise<string[]> {
-    await this.init();
+    const videoDir = path.join(this.thumbnailDir, video.id);
+    await fs.mkdir(videoDir, { recursive: true });
 
-    const metadata = await this.getVideoMetadata(video.path);
-    const duration = metadata.duration;
-    const count = Math.min(settings.maxCount, Math.max(1, Math.floor(duration / 60)));
-    const interval = duration / (count + 1);
-    const thumbnailPaths: string[] = [];
+    return new Promise((resolve, reject) => {
+      ffmpeg.ffprobe(video.path, (err: any, metadata: any) => {
+        if (err) {
+          reject(err);
+          return;
+        }
 
-    const videoData = await window.electronAPI.readFile(video.path);
-    await this.ffmpeg.writeFile('input.mp4', videoData);
+        const duration = metadata.format.duration;
+        const thumbnails: string[] = [];
+        let processed = 0;
 
-    for (let i = 1; i <= count; i++) {
-      const timestamp = interval * i;
-      const outputFilename = `${video.id}_${i}.jpg`;
-      const outputPath = path.join(this.thumbnailDir, outputFilename);
+        for (let i = 0; i < options.maxCount; i++) {
+          const timestamp = (duration * i) / (options.maxCount - 1);
+          const outputPath = path.join(videoDir, `thumb_${i}.jpg`);
 
-      await this.ffmpeg.exec([
-        '-ss', timestamp.toString(),
-        '-i', 'input.mp4',
-        '-vf', `scale=${settings.width}:${settings.height}`,
-        '-vframes', '1',
-        '-q:v', settings.quality.toString(),
-        outputFilename
-      ]);
+          ffmpeg(video.path)
+            .screenshots({
+              timestamps: [timestamp],
+              filename: `thumb_${i}.jpg`,
+              folder: videoDir,
+              size: `${options.width}x${options.height}`
+            })
+            .on('end', () => {
+              thumbnails.push(outputPath);
+              processed++;
+              
+              if (onProgress) {
+                onProgress((processed / options.maxCount) * 100);
+              }
 
-      const thumbnailData = await this.ffmpeg.readFile(outputFilename) as Uint8Array;
-      await window.electronAPI.writeFile(
-        outputPath, 
-        Buffer.from(thumbnailData.buffer)
-      );
-      thumbnailPaths.push(outputPath);
-
-      onProgress?.(Math.round((i / count) * 100));
-    }
-
-    return thumbnailPaths;
-  }
-
-  async deleteThumbnails(thumbnailPaths: string[]): Promise<void> {
-    for (const thumbnailPath of thumbnailPaths) {
-      const exists = await window.electronAPI.exists(thumbnailPath);
-      if (exists) {
-        await window.electronAPI.unlink(thumbnailPath);
-      }
-    }
+              if (processed === options.maxCount) {
+                resolve(thumbnails);
+              }
+            })
+            .on('error', reject);
+        }
+      });
+    });
   }
 
   async terminate(): Promise<void> {
-    if (this.isLoaded) {
-      await this.ffmpeg.terminate();
-      this.isLoaded = false;
-    }
+    // 必要に応じてクリーンアップ処理を実装
   }
 }
-
-export default ThumbnailGenerator;
