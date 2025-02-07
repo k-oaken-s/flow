@@ -263,35 +263,14 @@ function setupIpcHandlers() {
     }
     return storeManager.getVideos();
   });
-  
-  ipcMain.handle('select-folder', async () => {
-    if (!mainWindow) return null;
-    
-    const result = await dialog.showOpenDialog(mainWindow, {
-        properties: ['openDirectory']
-    });
 
-    if (!result.canceled && result.filePaths.length > 0) {
-        try {
-            const folderPath = result.filePaths[0];
-            const folder = storeManager.addWatchFolder(folderPath);
-            
-            if (folder) {
-                // フォルダが追加された場合、必要に応じてメインウィンドウに通知
-                mainWindow.webContents.send('watch-folders-updated');
-            }
-            
-            return folder;
-        } catch (error) {
-            console.error('Error adding watch folder:', error);
-            throw error;
-        }
+ipcMain.handle('get-watch-folders', () => {
+    if (!storeManager) {
+        console.error('StoreManager not initialized');
+        return [];
     }
-    
-    return null;
+    return storeManager.getWatchFolders();
 });
-
-  ipcMain.handle('get-watch-folders', () => store.get('watchFolders'));
 
   ipcMain.handle('add-watch-folder', async (_, folderPath: string) => {
     try {
@@ -309,6 +288,83 @@ function setupIpcHandlers() {
         throw error;
     }
  });
+
+ ipcMain.handle('remove-watch-folder', async (_, id: string) => {
+  if (!storeManager) {
+      throw new Error('StoreManager not initialized');
+  }
+  await storeManager.removeWatchFolder(id);
+  // 監視フォルダが更新されたことを通知
+  mainWindow?.webContents.send('watch-folders-updated');
+  return true;
+});
+
+ipcMain.handle('select-folder', async () => {
+  if (!mainWindow) return null;
+  
+  const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory']
+  });
+
+  if (!result.canceled && result.filePaths.length > 0) {
+      try {
+          const folderPath = result.filePaths[0];
+          const folder = storeManager.addWatchFolder(folderPath);
+          
+          if (folder) {
+              // フォルダ内の動画ファイルを読み込む
+              await scanWatchFolder(folderPath);
+              mainWindow.webContents.send('watch-folders-updated');
+              mainWindow.webContents.send('videos-updated');
+          }
+          
+          return folder;
+      } catch (error) {
+          console.error('Error adding watch folder:', error);
+          throw error;
+      }
+  }
+  
+  return null;
+});
+
+async function scanWatchFolder(folderPath: string) {
+  const fs = require('fs').promises;
+  const path = require('path');
+  
+  // サポートする動画ファイルの拡張子
+  const videoExtensions = ['.mp4', '.avi', '.mkv', '.mov', '.wmv'];
+
+  try {
+      // フォルダ内のファイルを再帰的に検索
+      async function scanDirectory(dir: string) {
+          const entries = await fs.readdir(dir, { withFileTypes: true });
+          
+          for (const entry of entries) {
+              const fullPath = path.join(dir, entry.name);
+              
+              if (entry.isDirectory()) {
+                  // サブディレクトリを再帰的にスキャン
+                  await scanDirectory(fullPath);
+              } else if (entry.isFile()) {
+                  // ファイルの拡張子をチェック
+                  const ext = path.extname(entry.name).toLowerCase();
+                  if (videoExtensions.includes(ext)) {
+                      // 動画ファイルを見つけたら追加
+                      const filePaths = [fullPath];
+                      storeManager.addVideoEntries(filePaths);
+                  }
+              }
+          }
+      }
+
+      await scanDirectory(folderPath);
+      console.log(`Finished scanning folder: ${folderPath}`);
+  } catch (error) {
+      console.error('Error scanning watch folder:', error);
+      throw error;
+  }
+}
 
   ipcMain.handle('update-video-metadata', async (_, videoId, metadata, thumbnails) => {
     const videos = store.get('videos');

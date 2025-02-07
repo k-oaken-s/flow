@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { statSync } from 'fs';
 import path from 'path';
 import type ElectronStore from 'electron-store';
+import { Tag } from 'src/types/store';
 
 export interface VideoFile {
     id: string;
@@ -67,40 +68,6 @@ class StoreManager {
             console.error('Error initializing store:', error);
             throw error;
         }
-    }
-
-    addVideoEntries(filePaths: string[]): VideoFile[] {
-        if (!this.store) {
-            console.error('Store not initialized');
-            return [];
-        }
-
-        const existingPaths = new Set(this.getVideos().map(v => v.path));
-        const newVideos: VideoFile[] = [];
-
-        for (const filePath of filePaths) {
-            if (!existingPaths.has(filePath)) {
-                const stats = statSync(filePath);
-                const video: VideoFile = {
-                    id: randomUUID(),
-                    path: filePath,
-                    filename: path.basename(filePath),
-                    added: Date.now(),
-                    fileSize: stats.size,
-                    processingStatus: 'processing',
-                    playCount: 0
-                };
-
-                newVideos.push(video);
-            }
-        }
-
-        if (newVideos.length > 0) {
-            const currentVideos = this.getVideos();
-            this.store.set('videos', [...currentVideos, ...newVideos]);
-        }
-
-        return newVideos;
     }
 
     getVideos(): VideoFile[] {
@@ -180,6 +147,51 @@ class StoreManager {
 
         this.store.set('watchFolders', [...existingFolders, folder]);
         return folder;
+    }
+
+    addVideoEntries(filePaths: string[]): VideoFile[] {
+        if (!this.store) {
+            console.error('Store not initialized');
+            return [];
+        }
+    
+        // 既存のパスをチェック（大文字小文字を区別しない）
+        const existingPaths = new Set(
+            this.getVideos().map(v => v.path.toLowerCase())
+        );
+        const newVideos: VideoFile[] = [];
+    
+        for (const filePath of filePaths) {
+            if (!existingPaths.has(filePath.toLowerCase())) {
+                try {
+                    const stats = statSync(filePath);
+                    const video: VideoFile = {
+                        id: randomUUID(),
+                        path: filePath,
+                        filename: path.basename(filePath),
+                        added: Date.now(),
+                        fileSize: stats.size,
+                        processingStatus: 'processing',
+                        playCount: 0
+                    };
+    
+                    newVideos.push(video);
+                    console.log('Added new video:', video.filename);
+                } catch (error) {
+                    console.error('Error creating video entry:', error);
+                }
+            } else {
+                console.log('Video already exists:', filePath);
+            }
+        }
+    
+        if (newVideos.length > 0) {
+            const currentVideos = this.getVideos();
+            this.store.set('videos', [...currentVideos, ...newVideos]);
+            console.log(`Added ${newVideos.length} new videos`);
+        }
+    
+        return newVideos;
     }
 
     removeWatchFolder(id: string): void {

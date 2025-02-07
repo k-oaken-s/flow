@@ -8,6 +8,7 @@ interface ElectronAPI {
   getVideos: () => Promise<any[]>;
   getWatchFolders: () => Promise<any[]>;
   addWatchFolder: (folderPath: string) => Promise<void>;
+  onWatchFoldersUpdated: (callback: () => void) => () => void;
   removeVideo: (id: string) => Promise<void>;
   removeWatchFolder: (id: string) => Promise<void>;
   updateVideoMetadata: (id: string, metadata: any, thumbnails: string[]) => Promise<void>;
@@ -51,6 +52,15 @@ declare global {
 
 contextBridge.exposeInMainWorld('electronAPI', {
   selectFiles: () => ipcRenderer.invoke('select-files'),
+  getWatchFolders: () => ipcRenderer.invoke('get-watch-folders'),
+  removeWatchFolder: (id: string) => ipcRenderer.invoke('remove-watch-folder', id),
+  onWatchFoldersUpdated: (callback: () => void) => {
+      const subscription = () => callback();
+      ipcRenderer.on('watch-folders-updated', subscription);
+      return () => {
+          ipcRenderer.removeListener('watch-folders-updated', subscription);
+      };
+  },
   getVideos: () => ipcRenderer.invoke('get-videos'),
   removeVideo: (id: string) => ipcRenderer.invoke('remove-video', id),
   retryThumbnails: (id: string) => ipcRenderer.invoke('retry-thumbnails', id),

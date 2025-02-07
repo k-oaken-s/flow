@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import ThemeToggle from './ThemeToggle';
-import { Tag } from 'src/types/store';
+import { Tag, WatchFolder } from 'src/types/store';
 import TagManagerModal from './TagManagerModal';
 import { formatDuration, formatFileSize } from '../utils/format';
 import { Statistics } from 'src/types/global';
 import { FilterState } from 'src/types/filter';
-import { ChevronDown, Search, Star } from 'lucide-react';
+import { ChevronDown, Search, Star, X } from 'lucide-react';
 import { debounce } from 'lodash';
 import Title from './Title';
 
@@ -18,6 +18,7 @@ const Sidebar: React.FC = () => {
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
     // その他の状態
+    const [watchFolders, setWatchFolders] = useState<WatchFolder[]>([]);
     const [tags, setTags] = useState<Tag[]>([]);
     const [stats, setStats] = useState<Statistics | null>(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -134,6 +135,40 @@ const Sidebar: React.FC = () => {
             sortOrder
         });
     }, 300) as (query: string) => void;
+
+    // 監視フォルダの読み込み
+    const loadWatchFolders = useCallback(async () => {
+        try {
+            const folders = await window.electronAPI.getWatchFolders();
+            setWatchFolders(folders);
+        } catch (error) {
+            console.error('Error loading watch folders:', error);
+            setWatchFolders([]);
+        }
+    }, []);
+
+    // 初期読み込みと更新監視
+    useEffect(() => {
+        loadWatchFolders();
+
+        const unsubscribe = window.electronAPI.onWatchFoldersUpdated(() => {
+            loadWatchFolders();
+        });
+
+        return () => unsubscribe();
+    }, [loadWatchFolders]);
+
+    // 監視フォルダの削除処理
+    const handleRemoveWatchFolder = async (id: string) => {
+        if (window.confirm('この監視フォルダを削除してもよろしいですか？')) {
+            try {
+                await window.electronAPI.removeWatchFolder(id);
+                await loadWatchFolders();
+            } catch (error) {
+                console.error('Error removing watch folder:', error);
+            }
+        }
+    };
 
     // アプリケーションバージョンの取得
     useEffect(() => {
@@ -326,9 +361,43 @@ const Sidebar: React.FC = () => {
                         >
                             タグ管理
                         </button>
-                        <div className="flex items-center justify-between px-2 py-1">
-                            <span className="text-sm">ダークモード</span>
-                            <ThemeToggle />
+
+                        {/* 区切り線 */}
+                        <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+
+                        {/* 監視フォルダ */}
+                        <div className="mb-6">
+                            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">監視フォルダ</h3>
+                            {watchFolders.length === 0 ? (
+                                <p className="text-sm text-gray-400 dark:text-gray-500 italic">
+                                    監視フォルダが設定されていません
+                                </p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {watchFolders.map(folder => (
+                                        <div
+                                            key={folder.id}
+                                            className="group flex items-start justify-between p-2 rounded bg-gray-50 dark:bg-gray-700/50 text-sm"
+                                        >
+                                            <div className="flex-1 min-w-0">
+                                                <p className="truncate" title={folder.path}>
+                                                    {folder.path}
+                                                </p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {new Date(folder.added).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => handleRemoveWatchFolder(folder.id)}
+                                                className="ml-2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                title="監視フォルダを削除"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* 区切り線 */}
@@ -341,6 +410,11 @@ const Sidebar: React.FC = () => {
                         >
                             データをリセット
                         </button>
+
+                        <div className="flex items-center justify-between px-2 py-1">
+                            <span className="text-sm">ダークモード</span>
+                            <ThemeToggle />
+                        </div>
 
                         {/* バージョン情報 */}
                         <div className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400">

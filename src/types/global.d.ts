@@ -30,6 +30,7 @@ interface ElectronAPI extends FileSystemAPI {
   onFilterChanged: (callback: (filter: FilterState) => void) => () => void;
   getStatistics: () => Promise<Statistics>;
   addWatchFolder: (folderPath: string) => Promise<WatchFolder | null>;
+  onWatchFoldersUpdated: (callback: () => void) => () => void;
 
   // データ操作
   getVideos: () => Promise<VideoFile[]>;
