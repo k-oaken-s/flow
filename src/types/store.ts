@@ -20,6 +20,8 @@ export interface VideoFile {
   metadata?: VideoMetadata;
   processingStatus?: ProcessingStatus;
   processingProgress?: number;
+  isFavorite?: boolean;
+  tagIds: string[];
 }
 
 export interface WatchFolder {
@@ -42,5 +44,12 @@ export interface Settings {
 export interface StoreSchema {
   videos: VideoFile[];
   watchFolders: WatchFolder[];
+  tags: Tag[]; 
   settings: Settings;
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
 }

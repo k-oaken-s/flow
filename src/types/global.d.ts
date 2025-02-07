@@ -1,3 +1,4 @@
+import { FilterState } from './filter';
 import { VideoFile, WatchFolder } from './store';
 
 interface ThumbnailProgress {
@@ -19,7 +20,16 @@ interface ElectronAPI extends FileSystemAPI {
   selectFolder: () => Promise<WatchFolder | null>;
   getUserDataPath: () => Promise<string>;
   openVideo: (path: string) => Promise<boolean>;
-  
+  toggleFavorite: (videoId: string) => Promise<boolean>;
+  getTags: () => Promise<Tag[]>;
+  addTag: (name: string, color: string) => Promise<Tag>;
+  removeTag: (id: string) => Promise<boolean>;
+  updateVideoTags: (videoId: string, tagIds: string[]) => Promise<boolean>;
+  notifyTagsUpdated: () => void;
+  notifyFilterChanged: (filter: FilterState) => Promise<void>;
+  onFilterChanged: (callback: (filter: FilterState) => void) => () => void;
+  getStatistics: () => Promise<Statistics>;
+
   // データ操作
   getVideos: () => Promise<VideoFile[]>;
   getWatchFolders: () => Promise<WatchFolder[]>;
@@ -44,6 +54,13 @@ interface ElectronAPI extends FileSystemAPI {
     path: string;
     content: any;
   } | null>;
+}
+
+interface Statistics {
+  totalVideos: number;
+  totalDuration: number;
+  totalSize: number;
+  totalPlayCount: number;
 }
 
 declare global {

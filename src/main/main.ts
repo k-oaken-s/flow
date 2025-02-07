@@ -360,6 +360,73 @@ ipcMain.handle('increment-play-count', async (_, videoId) => {
       return false;
   }
 });
+
+ipcMain.handle('toggle-favorite', async (_, videoId) => {
+  try {
+      storeManager.toggleFavorite(videoId);
+      return true;
+  } catch (error) {
+      console.error('Error toggling favorite:', error);
+      return false;
+  }
+});
+
+ipcMain.handle('get-tags', () => {
+  return storeManager.getTags();
+});
+
+ipcMain.handle('add-tag', async (_, name: string, color: string) => {
+  try {
+      const newTag = storeManager.addTag(name, color);
+      return newTag;
+  } catch (error) {
+      console.error('Error adding tag:', error);
+      throw error;
+  }
+});
+
+ipcMain.handle('remove-tag', async (_, tagId: string) => {
+  try {
+      await storeManager.removeTag(tagId);
+      return true;
+  } catch (error) {
+      console.error('Error removing tag:', error);
+      throw error;
+  }
+});
+
+ipcMain.handle('update-video-tags', async (_, videoId: string, tagIds: string[]) => {
+  try {
+      await storeManager.updateVideoTags(videoId, tagIds);
+      return true;
+  } catch (error) {
+      console.error('Error updating video tags:', error);
+      throw error;
+  }
+});
+
+ipcMain.handle('notify-tags-updated', () => {
+  mainWindow?.webContents.send('tags-updated');
+});
+
+ipcMain.handle('notify-filter-changed', (_, options: FilterOptions) => {
+  try {
+      mainWindow?.webContents.send('filter-changed', options);
+      return true;
+  } catch (error) {
+      console.error('Error notifying filter change:', error);
+      return false;
+  }
+});
+ipcMain.handle('get-statistics', async () => {
+  const videos = storeManager.getVideos();
+  return {
+      totalVideos: videos.length,
+      totalDuration: videos.reduce((sum, video) => sum + (video.metadata?.duration || 0), 0),
+      totalSize: videos.reduce((sum, video) => sum + video.fileSize, 0),
+      totalPlayCount: videos.reduce((sum, video) => sum + (video.playCount || 0), 0),
+  };
+});
 }
 
 function setupFfmpeg() {

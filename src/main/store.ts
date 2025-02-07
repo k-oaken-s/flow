@@ -208,6 +208,68 @@ class StoreManager {
             this.store.set('videos', videos);
         }
     }
+
+    toggleFavorite(videoId: string): void {
+        if (!this.store) {
+            console.error('Store not initialized');
+            return;
+        }
+
+        const videos = this.getVideos();
+        const index = videos.findIndex(v => v.id === videoId);
+        if (index !== -1) {
+            videos[index] = {
+                ...videos[index],
+                isFavorite: !videos[index].isFavorite
+            };
+            this.store.set('videos', videos);
+        }
+    }
+
+     // タグの取得
+     getTags(): Tag[] {
+        if (!this.store) return [];
+        return this.store.get('tags') || [];
+    }
+
+    // タグの追加
+    addTag(name: string, color: string): Tag {
+        const tags = this.getTags();
+        const newTag: Tag = {
+            id: randomUUID(),
+            name,
+            color
+        };
+        this.store?.set('tags', [...tags, newTag]);
+        return newTag;
+    }
+
+    // タグの削除
+    removeTag(tagId: string): void {
+        const tags = this.getTags().filter(tag => tag.id !== tagId);
+        this.store?.set('tags', tags);
+        
+        // 全ての動画からこのタグを削除
+        const videos = this.getVideos();
+        const updatedVideos = videos.map(video => ({
+            ...video,
+            tagIds: video.tagIds?.filter(id => id !== tagId) || []
+        }));
+        this.store?.set('videos', updatedVideos);
+    }
+
+    // 動画のタグを更新
+    updateVideoTags(videoId: string, tagIds: string[]): void {
+        const videos = this.getVideos();
+        const index = videos.findIndex(v => v.id === videoId);
+        if (index !== -1) {
+            videos[index] = {
+                ...videos[index],
+                tagIds
+            };
+            this.store?.set('videos', videos);
+        }
+    }
 }
 
 export default StoreManager;

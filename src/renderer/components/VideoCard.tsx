@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { VideoFile } from '../../types/store';
+import { Tag, VideoFile } from '../../types/store';
 import { formatDate } from '../utils/date';
+import { Star, StarOff, Tags } from 'lucide-react';
+import TagEditModal from './TagEditModel';
 
 interface VideoCardProps {
     video: VideoFile;
@@ -11,13 +13,30 @@ interface VideoCardProps {
 
 const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdated }) => {
     const [currentThumbnail, setCurrentThumbnail] = useState(0);
+    const [tags, setTags] = useState<Tag[]>([]);
+    const [isTagEditModalOpen, setIsTagEditModalOpen] = useState(false);
 
+    const getSelectedTags = () => {
+        if (!video.tagIds || !tags) return [];
+        return tags.filter(tag => video.tagIds.includes(tag.id));
+    };
+
+    // タグ情報を取得
     useEffect(() => {
-        // デバッグ用：サムネイルの情報を確認
-        if (video.thumbnails) {
-            console.log('Thumbnails for video:', video.id, video.thumbnails);
-        }
-    }, [video]);
+        const loadTags = async () => {
+            try {
+                const loadedTags = await window.electronAPI.getTags();
+                setTags(loadedTags);
+            } catch (error) {
+                console.error('Error loading tags:', error);
+            }
+        };
+        loadTags();
+
+        // タグ更新イベントのリスナーを設定
+        const unsubscribe = window.electronAPI.onTagsUpdated(loadTags);
+        return () => unsubscribe();
+    }, []);
 
     const formatDuration = (seconds: number): string => {
         const hrs = Math.floor(seconds / 3600);
@@ -47,25 +66,105 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
         }
     };
 
+    const handleToggleFavorite = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            await window.electronAPI.toggleFavorite(video.id);
+            onUpdated();
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+        }
+    };
+
+    const handleTagsUpdate = async (tagIds: string[]) => {
+        try {
+            await window.electronAPI.updateVideoTags(video.id, tagIds);
+            onUpdated();
+        } catch (error) {
+            console.error('Error updating video tags:', error);
+        }
+    };
+
+
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+        <><div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
             onDoubleClick={handleOpenVideo}
             style={{ cursor: 'pointer' }}>
-            <div className="p-4">
-                <h3 className="font-medium text-gray-800 dark:text-white truncate mb-2" title={video.filename}>
-                    {video.filename}
-                </h3>
-                <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    <span>{video.metadata?.duration ? formatDuration(video.metadata.duration) : '--:--'}</span>
-                    <span>{formatFileSize(video.fileSize)}</span>
-                </div>
+            <div className="p-3">
+                {/* 3カラムグリッドレイアウト */}
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                    {/* 左カラム: ファイル名とタグ */}
+                    <div className="flex flex-col justify-between">
+                        <h3 className="font-medium text-gray-800 dark:text-white text-sm truncate" title={video.filename}>
+                            {video.filename}
+                        </h3>
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsTagEditModalOpen(true);
+                                }}
+                                className="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                            >
+                                <Tags className="w-3 h-3 text-gray-400" />
+                            </button>
+                            <div className="flex flex-wrap gap-1">
+                                {getSelectedTags().map(tag => (
+                                    <span
+                                        key={tag.id}
+                                        className="px-1.5 py-0.5 text-xs rounded-full text-white"
+                                        style={{ backgroundColor: tag.color }}
+                                    >
+                                        {tag.name}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
 
-                <div className="flex flex-col">
-                    <span>追加日時: {formatDate(video.added)}</span>
-                    {video.lastPlayed && (
-                        <span>最終再生日時: {formatDate(video.lastPlayed)}</span>
-                    )}
-                    <span>再生回数: {video.playCount || 0}回</span>
+                    {/* 中央カラム: メタ情報 */}
+                    <div className="flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center justify-center gap-2">
+                            <span>{video.metadata?.duration ? formatDuration(video.metadata.duration) : '--:--'}</span>
+                            <span>•</span>
+                            <span>{formatFileSize(video.fileSize)}</span>
+                        </div>
+                        <div className="flex items-center justify-center">
+                            <span>{video.playCount || 0}回再生</span>
+                        </div>
+                    </div>
+
+                    {/* 右カラム: 日時情報とアクション */}
+                    <div className="flex flex-col justify-between items-end text-xs">
+                        <div className="flex items-center gap-2">
+                            <span className="text-gray-500 dark:text-gray-400">
+                                {formatDate(video.added)}
+                            </span>
+                            <button
+                                onClick={handleToggleFavorite}
+                                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                            >
+                                {video.isFavorite ? (
+                                    <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
+                                ) : (
+                                    <StarOff className="w-4 h-4 text-gray-400" />
+                                )}
+                            </button>
+                            {video.processingStatus !== 'processing' && (
+                                <button
+                                    onClick={() => onDelete(video.id)}
+                                    className="text-red-500 hover:text-red-600 text-xs"
+                                >
+                                    削除
+                                </button>
+                            )}
+                        </div>
+                        {video.lastPlayed && (
+                            <span className="text-gray-500 dark:text-gray-400">
+                                最終再生: {formatDate(video.lastPlayed)}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {/* サムネイル表示エリア */}
@@ -80,8 +179,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
                                     <img
                                         src={`file://${thumbnail}`}
                                         alt={`${video.filename} thumbnail ${index + 1}`}
-                                        className={`w-full h-full object-cover ${currentThumbnail === index ? 'ring-2 ring-blue-500' : ''
-                                            }`}
+                                        className={`w-full h-full object-cover ${currentThumbnail === index ? 'ring-2 ring-blue-500' : ''}`}
                                         onClick={() => setCurrentThumbnail(index)}
                                         onError={(e) => {
                                             console.error('Error loading thumbnail:', {
@@ -89,8 +187,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
                                                 index,
                                                 videoId: video.id
                                             });
-                                        }}
-                                    />
+                                        }} />
                                 </div>
                             ))}
                         </div>
@@ -131,19 +228,17 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
                     )}
                 </div>
             </div>
-
-            {/* コントロールエリア */}
-            <div className="px-4 pb-4 flex justify-end space-x-2">
-                {video.processingStatus !== 'processing' && (
-                    <button
-                        onClick={() => onDelete(video.id)}
-                        className="text-red-500 hover:text-red-600 text-sm"
-                    >
-                        Delete
-                    </button>
-                )}
-            </div>
         </div>
+
+
+            <TagEditModal
+                isOpen={isTagEditModalOpen}
+                onClose={() => setIsTagEditModalOpen(false)}
+                selectedTagIds={video.tagIds || []}
+                allTags={tags}
+                onTagsUpdate={handleTagsUpdate} />
+
+        </>
     );
 };
 
