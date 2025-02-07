@@ -7,6 +7,7 @@ interface ElectronAPI {
   getUserDataPath: () => Promise<string>;
   getVideos: () => Promise<any[]>;
   getWatchFolders: () => Promise<any[]>;
+  addWatchFolder: (folderPath: string) => Promise<void>;
   removeVideo: (id: string) => Promise<void>;
   removeWatchFolder: (id: string) => Promise<void>;
   updateVideoMetadata: (id: string, metadata: any, thumbnails: string[]) => Promise<void>;
@@ -35,6 +36,9 @@ interface ElectronAPI {
   onThumbnailProgress: (callback: (data: { videoId: string; progress: number }) => void) => () => void;
   onVideosUpdated: (callback: () => void) => () => void;
 
+  resetStore: () => Promise<boolean>;
+  getAppVersion: () => Promise<string>;
+
   // デバッグ
   debugStore: () => Promise<{ path: string; content: any } | null>;
 }
@@ -50,6 +54,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getVideos: () => ipcRenderer.invoke('get-videos'),
   removeVideo: (id: string) => ipcRenderer.invoke('remove-video', id),
   retryThumbnails: (id: string) => ipcRenderer.invoke('retry-thumbnails', id),
+  addWatchFolder: (folderPath: string) => ipcRenderer.invoke('add-watch-folder', folderPath),
+  selectFolder: () => ipcRenderer.invoke('select-folder'),
   getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
   updateVideoMetadata: (id: string, metadata: any, thumbnails: string[]) => 
     ipcRenderer.invoke('update-video-metadata', id, metadata, thumbnails),
@@ -100,6 +106,8 @@ getStatistics: () => ipcRenderer.invoke('get-statistics'),
   writeFile: (path: string, data: Uint8Array) => ipcRenderer.invoke('write-file', path, data),
   exists: (path: string) => ipcRenderer.invoke('exists', path),
 
+  resetStore: () => ipcRenderer.invoke('reset-store'),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   // デバッグ
   debugStore: () => ipcRenderer.invoke('debug-store'),
 });

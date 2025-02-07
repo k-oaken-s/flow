@@ -263,8 +263,52 @@ function setupIpcHandlers() {
     }
     return storeManager.getVideos();
   });
+  
+  ipcMain.handle('select-folder', async () => {
+    if (!mainWindow) return null;
+    
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory']
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+        try {
+            const folderPath = result.filePaths[0];
+            const folder = storeManager.addWatchFolder(folderPath);
+            
+            if (folder) {
+                // フォルダが追加された場合、必要に応じてメインウィンドウに通知
+                mainWindow.webContents.send('watch-folders-updated');
+            }
+            
+            return folder;
+        } catch (error) {
+            console.error('Error adding watch folder:', error);
+            throw error;
+        }
+    }
+    
+    return null;
+});
 
   ipcMain.handle('get-watch-folders', () => store.get('watchFolders'));
+
+  ipcMain.handle('add-watch-folder', async (_, folderPath: string) => {
+    try {
+        if (!storeManager) {
+            throw new Error('StoreManager not initialized');
+        }
+        const folder = storeManager.addWatchFolder(folderPath);
+        if (!folder) {
+            console.log('Folder already exists:', folderPath);
+            return null;
+        }
+        return folder;
+    } catch (error) {
+        console.error('Error adding watch folder:', error);
+        throw error;
+    }
+ });
 
   ipcMain.handle('update-video-metadata', async (_, videoId, metadata, thumbnails) => {
     const videos = store.get('videos');
@@ -426,6 +470,23 @@ ipcMain.handle('get-statistics', async () => {
       totalSize: videos.reduce((sum, video) => sum + video.fileSize, 0),
       totalPlayCount: videos.reduce((sum, video) => sum + (video.playCount || 0), 0),
   };
+});
+
+ipcMain.handle('reset-store', async () => {
+  try {
+      store.clear();
+      storeManager = new StoreManager();
+      await storeManager.initializeStore();
+      mainWindow?.webContents.send('videos-updated');
+      return true;
+  } catch (error) {
+      console.error('Error resetting store:', error);
+      return false;
+  }
+});
+
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
 });
 }
 

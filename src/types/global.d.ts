@@ -29,6 +29,7 @@ interface ElectronAPI extends FileSystemAPI {
   notifyFilterChanged: (filter: FilterState) => Promise<void>;
   onFilterChanged: (callback: (filter: FilterState) => void) => () => void;
   getStatistics: () => Promise<Statistics>;
+  addWatchFolder: (folderPath: string) => Promise<WatchFolder | null>;
 
   // データ操作
   getVideos: () => Promise<VideoFile[]>;
@@ -48,6 +49,9 @@ interface ElectronAPI extends FileSystemAPI {
     callback: (data: ThumbnailProgress) => void
   ) => () => void;
   onVideosUpdated: (callback: () => void) => () => void;
+
+  resetStore: () => Promise<boolean>;
+  getAppVersion: () => Promise<string>;
 
   // デバッグ
   debugStore: () => Promise<{

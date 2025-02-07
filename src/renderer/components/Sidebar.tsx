@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import ThemeToggle from './ThemeToggle';
-import TagManager from './TagManagerModal';
 import { Tag } from 'src/types/store';
 import TagManagerModal from './TagManagerModal';
 import { formatDuration, formatFileSize } from '../utils/format';
@@ -23,6 +22,7 @@ const Sidebar: React.FC = () => {
     const [stats, setStats] = useState<Statistics | null>(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
+    const [appVersion, setAppVersion] = useState<string>('');
 
     // フィルター変更時にMainContentに通知
     const notifyFilterChange = useCallback((newFilter: FilterState) => {
@@ -134,6 +134,37 @@ const Sidebar: React.FC = () => {
             sortOrder
         });
     }, 300) as (query: string) => void;
+
+    // アプリケーションバージョンの取得
+    useEffect(() => {
+        const loadAppVersion = async () => {
+            try {
+                const version = await window.electronAPI.getAppVersion();
+                setAppVersion(version);
+            } catch (error) {
+                console.error('Error loading app version:', error);
+            }
+        };
+        loadAppVersion();
+    }, []);
+
+    // ストアリセット処理
+    const handleResetStore = async () => {
+        if (window.confirm('すべてのデータをリセットしますか？\nこの操作は取り消せません。')) {
+            try {
+                await window.electronAPI.resetStore();
+                // 必要に応じて他の状態もリセット
+                handleResetFilters();
+                setTags([]);
+                setStats(null);
+
+                // リロード
+                window.location.reload();
+            } catch (error) {
+                console.error('Error resetting store:', error);
+            }
+        }
+    };
 
     return (
         <div className="w-64 h-screen bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-r border-gray-200 dark:border-gray-700 flex flex-col">
@@ -298,6 +329,22 @@ const Sidebar: React.FC = () => {
                         <div className="flex items-center justify-between px-2 py-1">
                             <span className="text-sm">ダークモード</span>
                             <ThemeToggle />
+                        </div>
+
+                        {/* 区切り線 */}
+                        <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+
+                        {/* データリセット */}
+                        <button
+                            onClick={handleResetStore}
+                            className="w-full px-2 py-1 text-sm text-left text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                        >
+                            データをリセット
+                        </button>
+
+                        {/* バージョン情報 */}
+                        <div className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400">
+                            バージョン: {appVersion}
                         </div>
                     </div>
                 )}
