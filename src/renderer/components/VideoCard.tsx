@@ -12,7 +12,9 @@ interface VideoCardProps {
 }
 
 const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdated }) => {
-    const [currentThumbnail, setCurrentThumbnail] = useState(0);
+    const [currentThumbnailIndex, setCurrentThumbnailIndex] = useState(0);
+    const [isProcessing, setIsProcessing] = useState(video.processingStatus === 'processing');
+    const [currentVideo, setCurrentVideo] = useState(video);
     const [tags, setTags] = useState<Tag[]>([]);
     const [isTagEditModalOpen, setIsTagEditModalOpen] = useState(false);
 
@@ -37,6 +39,43 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
         const unsubscribe = window.electronAPI.onTagsUpdated(loadTags);
         return () => unsubscribe();
     }, []);
+
+    // videos-updatedイベントの監視を追加
+    useEffect(() => {
+        const unsubscribe = window.electronAPI.onVideosUpdated(async () => {
+            if (currentVideo.id) {
+                try {
+                    const updatedVideo = await window.electronAPI.getVideo(currentVideo.id);
+                    if (updatedVideo) {
+                        setCurrentVideo(updatedVideo);
+                        setIsProcessing(updatedVideo.processingStatus === 'processing');
+                    }
+                } catch (error) {
+                    console.error('Error fetching updated video:', error);
+                }
+            }
+        });
+
+        return () => unsubscribe();
+    }, [currentVideo.id]);
+
+    // 動画情報の更新を監視
+    useEffect(() => {
+        setCurrentVideo(video);
+        setIsProcessing(video.processingStatus === 'processing');
+    }, [video]);
+
+    // サムネイル生成の進捗を監視
+    useEffect(() => {
+        if (video.processingStatus === 'processing') {
+            const unsubscribe = window.electronAPI.onThumbnailProgress(({ videoId, progress }) => {
+                if (videoId === video.id && progress === 100) {
+                    setIsProcessing(false);
+                }
+            });
+            return () => unsubscribe();
+        }
+    }, [video.id, video.processingStatus]);
 
     const formatDuration = (seconds: number): string => {
         const hrs = Math.floor(seconds / 3600);
@@ -85,11 +124,8 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
         }
     };
 
-
     return (
-        <><div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
-            onDoubleClick={handleOpenVideo}
-            style={{ cursor: 'pointer' }}>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <div className="p-3">
                 {/* 3カラムグリッドレイアウト */}
                 <div className="grid grid-cols-3 gap-2 mb-2">
@@ -166,79 +202,82 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
                         )}
                     </div>
                 </div>
-
-                {/* サムネイル表示エリア */}
-                <div className="relative">
-                    {video.thumbnails && video.thumbnails.length > 0 ? (
-                        <div className="grid grid-cols-10 gap-0">
-                            {video.thumbnails.map((thumbnail, index) => (
-                                <div
-                                    key={index}
-                                    className="relative aspect-video"
-                                >
-                                    <img
-                                        src={`file://${thumbnail}`}
-                                        alt={`${video.filename} thumbnail ${index + 1}`}
-                                        className={`w-full h-full object-cover ${currentThumbnail === index ? 'ring-2 ring-blue-500' : ''}`}
-                                        onClick={() => setCurrentThumbnail(index)}
-                                        onError={(e) => {
-                                            console.error('Error loading thumbnail:', {
-                                                src: e.currentTarget.src,
-                                                index,
-                                                videoId: video.id
-                                            });
-                                        }} />
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="w-full h-32 flex items-center justify-center bg-gray-200 dark:bg-gray-700">
-                            <span className="text-gray-500">No thumbnails</span>
-                        </div>
-                    )}
-
-                    {/* Processing状態の表示 */}
-                    {video.processingStatus === 'processing' && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-800/50 rounded">
-                            <div className="w-8 h-8 mb-2">
-                                <svg className="animate-spin text-white" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                </svg>
-                            </div>
-                            {video.processingProgress !== undefined && (
-                                <div className="text-white text-sm">
-                                    {Math.round(video.processingProgress)}%
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* エラー表示 */}
-                    {video.processingStatus === 'error' && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-500/50 rounded">
-                            <span className="text-white mb-2">Error</span>
-                            <button
-                                onClick={() => onRetry(video.id)}
-                                className="px-3 py-1 bg-white text-red-500 rounded-full text-sm hover:bg-red-50 transition-colors"
-                            >
-                                Retry
-                            </button>
-                        </div>
-                    )}
-                </div>
             </div>
-        </div>
 
+            <div className="relative">
+                {isProcessing ? (
+                    <div className="w-full h-32 flex items-center justify-center bg-gray-200 dark:bg-gray-700">
+                        <span className="text-gray-500">サムネイル生成中...</span>
+                    </div>
+                ) : currentVideo.thumbnails && currentVideo.thumbnails.length > 0 ? (
+                    <div className="grid grid-cols-10 grid-rows-2 gap-0">
+                        {currentVideo.thumbnails.map((thumbnail, index) => (
+                            <div
+                                key={index}
+                                className="relative aspect-video"
+                            >
+                                <img
+                                    src={`file://${thumbnail}`}
+                                    alt={`${currentVideo.filename} thumbnail ${index + 1}`}
+                                    className={`w-full h-full object-cover ${currentThumbnailIndex === index ? 'ring-2 ring-blue-500' : ''
+                                        }`}
+                                    onClick={() => setCurrentThumbnailIndex(index)}
+                                    onError={(e) => {
+                                        console.error('Error loading thumbnail:', {
+                                            src: e.currentTarget.src,
+                                            index,
+                                            videoId: currentVideo.id
+                                        });
+                                    }}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="w-full h-32 flex items-center justify-center bg-gray-200 dark:bg-gray-700">
+                        <span className="text-gray-500">No thumbnails</span>
+                    </div>
+                )}
+
+                {/* Processing状態の表示 */}
+                {currentVideo.processingStatus === 'processing' && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-800/50 rounded">
+                        <div className="w-8 h-8 mb-2">
+                            <svg className="animate-spin text-white" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                        </div>
+                        {currentVideo.processingProgress !== undefined && (
+                            <div className="text-white text-sm">
+                                {Math.round(currentVideo.processingProgress)}%
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* エラー表示 */}
+                {currentVideo.processingStatus === 'error' && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-500/50 rounded">
+                        <span className="text-white mb-2">Error</span>
+                        <button
+                            onClick={() => onRetry(currentVideo.id)}
+                            className="px-3 py-1 bg-white text-red-500 rounded-full text-sm hover:bg-red-50 transition-colors"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                )}
+            </div>
 
             <TagEditModal
                 isOpen={isTagEditModalOpen}
                 onClose={() => setIsTagEditModalOpen(false)}
                 selectedTagIds={video.tagIds || []}
                 allTags={tags}
-                onTagsUpdate={handleTagsUpdate} />
-
-        </>
+                onTagsUpdate={handleTagsUpdate}
+            />
+        </div>
     );
 };
 

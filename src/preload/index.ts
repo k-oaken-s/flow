@@ -42,6 +42,10 @@ interface ElectronAPI {
 
   // デバッグ
   debugStore: () => Promise<{ path: string; content: any } | null>;
+
+  openStorePath: () => Promise<void>;
+
+  getVideo: (videoId: string) => Promise<any>;
 }
 
 declare global {
@@ -120,4 +124,8 @@ getStatistics: () => ipcRenderer.invoke('get-statistics'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   // デバッグ
   debugStore: () => ipcRenderer.invoke('debug-store'),
+
+  openStorePath: () => ipcRenderer.invoke('open-store-path'),
+
+  getVideo: (videoId: string) => ipcRenderer.invoke('get-video', videoId),
 });

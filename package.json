@@ -5,7 +5,7 @@
   "scripts": {
     "clean": "rm -rf dist && mkdir -p dist/styles",
     "build:store": "esbuild src/main/store.ts --bundle --outfile=dist/main/store.js --platform=node --format=cjs --external:electron --external:electron-store --target=node16 --keep-names",
-    "build:ts": "esbuild src/main/main.ts --bundle --outfile=dist/main/main.js --platform=node --format=cjs --external:electron --external:electron-store --target=node16 --keep-names",
+    "build:ts": "esbuild src/main/main.ts --bundle --outfile=dist/main/main.js --platform=node --format=cjs --external:electron --external:electron-store --external:fsevents --external:chokidar --external:fluent-ffmpeg --external:sharp --target=node16 --keep-names",
     "build:css": "npx tailwindcss -i ./src/renderer/styles/global.css -o ./dist/styles/global.css",
     "build:app": "esbuild src/renderer/App.tsx --bundle --outfile=dist/app.js --platform=browser --external:electron",
     "build:preload": "esbuild src/preload/index.ts --bundle --outfile=dist/preload/index.js --platform=node --format=cjs --external:electron",
@@ -29,6 +29,7 @@
   "homepage": "https://github.com/k-oaken-s/flow#readme",
   "description": "Video Management Application",
   "devDependencies": {
+    "@types/chokidar": "^1.7.5",
     "@types/fluent-ffmpeg": "^2.1.27",
     "@types/lodash": "^4.17.15",
     "@types/node": "^22.13.1",

@@ -363,7 +363,7 @@ const Sidebar: React.FC = () => {
                         </button>
 
                         {/* 区切り線 */}
-                        <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        {/* <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div> */}
 
                         {/* 監視フォルダ */}
                         <div className="mb-6">
@@ -401,7 +401,7 @@ const Sidebar: React.FC = () => {
                         </div>
 
                         {/* 区切り線 */}
-                        <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        {/* <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div> */}
 
                         {/* データリセット */}
                         <button
@@ -420,6 +420,14 @@ const Sidebar: React.FC = () => {
                         <div className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400">
                             バージョン: {appVersion}
                         </div>
+
+                        {/* storeの中をFinderで開くデバッグ用ボタンの追加 */}
+                        <button
+                            onClick={() => window.electronAPI.openStorePath()}
+                            className="w-full px-2 py-1 text-sm text-left text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded"
+                        >
+                            データフォルダを開く
+                        </button>
                     </div>
                 )}
             </div>

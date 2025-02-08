@@ -3,6 +3,8 @@ import { statSync } from 'fs';
 import path from 'path';
 import type ElectronStore from 'electron-store';
 import { Tag } from 'src/types/store';
+import { app } from 'electron';
+import fs from 'fs';
 
 export interface VideoFile {
     id: string;
@@ -41,6 +43,7 @@ export interface StoreSchema {
             height: number;
         };
     };
+    tags: Tag[];
 }
 
 class StoreManager {
@@ -61,7 +64,8 @@ class StoreManager {
                             width: 320,
                             height: 180
                         }
-                    }
+                    },
+                    tags: []
                 }
             });
         } catch (error) {
@@ -282,6 +286,55 @@ class StoreManager {
             this.store?.set('videos', videos);
         }
     }
+    
+    clear(): void {
+        if (!this.store) {
+            console.error('Store not initialized');
+            return;
+        }
+        this.store.clear();
+    }
 }
+
+export async function resetStore() {
+    // ストアが初期化されていない場合は初期化
+    if (!store.store) {
+        await store.initializeStore();
+    }
+    
+    store.clear();
+    
+    // デフォルト値を再設定
+    store.store?.set({
+        videos: [],
+        watchFolders: [],
+        settings: {
+            thumbnails: {
+                maxCount: 20,
+                quality: 80,
+                width: 320,
+                height: 180
+            }
+        },
+        tags: []
+    });
+    
+    // サムネイルディレクトリのパスを取得
+    const thumbnailDir = path.join(app.getPath('userData'), 'thumbnails');
+    
+    // サムネイルディレクトリが存在する場合、ディレクトリごと削除して再作成
+    if (fs.existsSync(thumbnailDir)) {
+        try {
+            // ディレクトリとその中身を再帰的に削除
+            fs.rmSync(thumbnailDir, { recursive: true, force: true });
+            // thumbnailsディレクトリを再作成
+            fs.mkdirSync(thumbnailDir);
+        } catch (error) {
+            console.error('Error cleaning thumbnail directory:', error);
+        }
+    }
+}
+
+export const store = new StoreManager();
 
 export default StoreManager;

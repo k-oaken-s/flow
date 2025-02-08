@@ -14,6 +14,7 @@ const MainContent: React.FC = () => {
         sortBy: 'added',
         sortOrder: 'desc'
     });
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     // 動画一覧の取得
     const loadVideos = async () => {
@@ -111,7 +112,17 @@ const MainContent: React.FC = () => {
     // 初期読み込み
     useEffect(() => {
         loadVideos();
-    }, []);
+    }, [refreshTrigger]);
+
+    const handleFolderSelect = async () => {
+        await window.electronAPI.selectFolder();
+        setRefreshTrigger(prev => prev + 1);
+    };
+
+    const handleFileSelect = async () => {
+        await window.electronAPI.selectFiles();
+        setRefreshTrigger(prev => prev + 1);
+    };
 
     return (
         <div className="flex flex-col flex-1 h-screen bg-gray-50 dark:bg-gray-900">
@@ -123,15 +134,23 @@ const MainContent: React.FC = () => {
                 ) : filteredVideos.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
                         <p className="mb-4">動画が見つかりません</p>
-                        <button
-                            onClick={() => window.electronAPI.selectFiles()}
-                            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                        >
-                            動画を追加
-                        </button>
+                        <div className="flex gap-4">
+                            <button
+                                onClick={handleFileSelect}
+                                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                            >
+                                動画を追加
+                            </button>
+                            <button
+                                onClick={handleFolderSelect}
+                                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                            >
+                                フォルダを追加
+                            </button>
+                        </div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 gap-6">
+                    <div className="grid grid-cols-1 gap-y-4">
                         {filteredVideos.map((video) => (
                             <VideoCard
                                 key={video.id}
