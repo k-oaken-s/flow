@@ -14,7 +14,9 @@
     "watch:css": "npx tailwindcss -i ./src/renderer/styles/global.css -o ./dist/styles/global.css --watch",
     "watch:app": "esbuild src/renderer/App.tsx --bundle --outfile=dist/app.js --platform=browser --watch",
     "dev": "npm run build && concurrently \"npm run watch:css\" \"npm run watch:app\" \"electron .\"",
-    "start": "npm run build && electron ."
+    "start": "npm run build && electron .",
+    "package-mac": "chmod +x package_mac.sh && ./package_mac.sh",
+    "package-windows": "chmod +x package_windows.sh && ./package_windows.sh"
   },
   "repository": {
     "type": "git",
@@ -59,5 +61,32 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sharp": "^0.33.5"
+  },
+  "build": {
+    "appId": "com.yourcompany.yourapp",
+    "productName": "YourAppName",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "build/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "build/icon.ico"
+    }
   }
 }

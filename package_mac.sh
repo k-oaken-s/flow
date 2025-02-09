@@ -1,0 +1,2 @@
+# electronをパッケージング
+electron-builder --mac 
