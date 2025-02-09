@@ -5,7 +5,23 @@ import { store, resetStore } from './store';  // resetStoreをインポート
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');  // 通常のfsを使用
-const sharp = require('sharp');
+let sharp;
+try {
+  const arch = process.arch;
+  if (process.platform === 'darwin') {
+    if (arch === 'arm64') {
+      sharp = require('@img/sharp-darwin-arm64');
+    } else {
+      sharp = require('@img/sharp-darwin-x64');
+    }
+  } else {
+    // Windowsの場合は通常のsharpを使用
+    sharp = require('sharp');
+  }
+} catch (error) {
+  console.error('Failed to load sharp:', error);
+  // エラーハンドリング
+}
 const ffmpeg = require('fluent-ffmpeg');
 const chokidar = require('chokidar');
 

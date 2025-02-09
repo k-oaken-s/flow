@@ -1,2 +1,2 @@
 # electronをパッケージング
-electron-builder --win 
+npx electron-builder --win 

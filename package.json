@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "main": "./dist/main/main.js",
   "scripts": {
-    "clean": "rm -rf dist && mkdir -p dist/styles",
+    "clean:unix": "rimraf dist && mkdir -p dist/styles",
+    "clean:win": "rimraf dist && mkdir dist && mkdir dist\\styles && mkdir dist\\main && mkdir dist\\preload",
+    "clean": "node -e \"process.platform === 'win32' ? process.exit(require('child_process').spawnSync('npm', ['run', 'clean:win'], {stdio:'inherit'}).status) : process.exit(require('child_process').spawnSync('npm', ['run', 'clean:unix'], {stdio:'inherit'}).status)\"",
     "build:store": "esbuild src/main/store.ts --bundle --outfile=dist/main/store.js --platform=node --format=cjs --external:electron --external:electron-store --target=node16 --keep-names",
-    "build:ts": "esbuild src/main/main.ts --bundle --outfile=dist/main/main.js --platform=node --format=cjs --external:electron --external:electron-store --external:fsevents --external:chokidar --external:fluent-ffmpeg --external:sharp --target=node16 --keep-names",
+    "build:ts": "esbuild src/main/main.ts --bundle --outfile=dist/main/main.js --platform=node --format=cjs --external:electron --external:electron-store --external:fsevents --external:fluent-ffmpeg --external:sharp --external:@img/sharp-darwin-x64 --external:@img/sharp-darwin-arm64 --target=node16 --keep-names --sourcemap --log-level=info",
     "build:css": "npx tailwindcss -i ./src/renderer/styles/global.css -o ./dist/styles/global.css",
     "build:app": "esbuild src/renderer/App.tsx --bundle --outfile=dist/app.js --platform=browser --external:electron",
     "build:preload": "esbuild src/preload/index.ts --bundle --outfile=dist/preload/index.js --platform=node --format=cjs --external:electron",
@@ -16,7 +18,7 @@
     "dev": "npm run build && concurrently \"npm run watch:css\" \"npm run watch:app\" \"electron .\"",
     "start": "npm run build && electron .",
     "package-mac": "chmod +x package_mac.sh && ./package_mac.sh",
-    "package-windows": "chmod +x package_windows.sh && ./package_windows.sh"
+    "package-windows": "npx electron-builder --win"
   },
   "repository": {
     "type": "git",
@@ -49,7 +51,9 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.7.3",
     "undici-types": "^7.3.0",
-    "xmlbuilder": "^15.1.1"
+    "xmlbuilder": "^15.1.1",
+    "rimraf": "^5.0.5",
+    "cross-env": "^7.0.3"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",
@@ -60,32 +64,80 @@
     "lucide-react": "^0.474.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "sharp": "^0.33.5"
+    "chokidar": "^3.5.3"
+  },
+  "optionalDependencies": {
+    "@img/sharp-darwin-arm64": "^0.33.1",
+    "@img/sharp-darwin-x64": "^0.33.1"
   },
   "build": {
-    "appId": "com.yourcompany.yourapp",
-    "productName": "YourAppName",
-    "directories": {
-      "output": "dist"
-    },
     "files": [
-      "dist/**/*",
-      "package.json"
+      "dist/main/main.js",
+      "dist/main/store.js",
+      "dist/preload/**/*",
+      "dist/styles/**/*",
+      "dist/app.js",
+      "dist/index.html",
+      "package.json",
+      "node_modules/**/*"
     ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/@img/sharp-darwin-*/**/*",
+      "node_modules/chokidar/**/*"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
     "mac": {
       "target": [
-        "dmg",
-        "zip"
+        {
+          "target": "zip",
+          "arch": ["x64", "arm64"]
+        }
       ],
+      "extraFiles": [
+        {
+          "from": "node_modules/@img/sharp-darwin-arm64",
+          "to": "node_modules/@img/sharp-darwin-arm64",
+          "filter": ["**/*"]
+        },
+        {
+          "from": "node_modules/@img/sharp-darwin-x64",
+          "to": "node_modules/@img/sharp-darwin-x64",
+          "filter": ["**/*"]
+        }
+      ],
+      "artifactName": "${productName}-${version}-${arch}-mac.${ext}",
       "category": "public.app-category.developer-tools",
-      "icon": "build/icon.icns"
+      "icon": "build/icon.icns",
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "entitlements": null,
+      "entitlementsInherit": null
     },
     "win": {
       "target": [
-        "nsis",
-        "zip"
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64"]
+        }
       ],
+      "artifactName": "${productName}-${version}-${arch}-win.${ext}",
       "icon": "build/icon.ico"
+    },
+    "appId": "com.koakens.flow",
+    "productName": "Flow",
+    "publish": {
+      "provider": "github",
+      "releaseType": "release",
+      "publishAutoUpdate": false
     }
   }
 }
