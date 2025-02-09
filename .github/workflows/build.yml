@@ -29,6 +29,12 @@ jobs:
       - name: Build application
         run: npm run build
 
+      # ビルドファイルの確認
+      - name: Check build files
+        run: |
+          ls -la dist/
+          ls -la dist/main/
+
       # Mac用のビルド
       - name: Build Mac App
         if: matrix.os == 'macos-latest'
