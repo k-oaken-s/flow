@@ -1,4 +1,4 @@
-import StoreManager, { VideoFile, initializeStore, getStore } from './store';
+import StoreManager, { VideoFile, initializeStore, getStore, resetStore } from './store';
 import type { FSWatcher } from 'chokidar';
 import { app, BrowserWindow, ipcMain, dialog, shell, Menu, MenuItemConstructorOptions, screen } from 'electron';
 import { promisify } from 'util';
@@ -452,6 +452,9 @@ function createWindow() {
 
   // ウィンドウの位置を中央に設定
   mainWindow.center();
+
+  // イベントリスナーの最大数を増やす
+  mainWindow.webContents.setMaxListeners(20);  // または必要な数に応じて調整
 }
 
 function setupIpcHandlers() {
@@ -876,12 +879,15 @@ ipcMain.handle('get-statistics', async () => {
   };
 });
 
-ipcMain.handle('reset-store', () => {
+ipcMain.handle('reset-store', async () => {
     try {
-        resetStore();
+        await resetStore();
+        // メインウィンドウを再読み込み
+        mainWindow?.reload();
+        return true;
     } catch (error) {
-        console.error('Error in reset-store handler:', error);
-        throw error;
+        console.error('Error resetting store:', error);
+        return false;
     }
 });
 
