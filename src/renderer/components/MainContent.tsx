@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import VideoCard from './VideoCard';
 import { Tag, VideoFile } from '../../types/store';
 import { FilterState } from 'src/types/filter';
@@ -16,25 +16,14 @@ const MainContent: React.FC = () => {
     });
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-    // 動画一覧の取得
-    const loadVideos = async () => {
-        try {
-            setIsLoading(true);
-            const videoList = await window.electronAPI.getVideos();
-            setVideos(videoList);
-            applyFilters(videoList, filterState);
-        } catch (error) {
-            console.error('Error loading videos:', error);
-            setVideos([]);
-            setFilteredVideos([]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // フィルター適用関数
-    const applyFilters = (videoList: VideoFile[], filters: FilterState) => {
+    // applyFiltersをuseCallbackでメモ化
+    const applyFilters = useCallback((videoList: VideoFile[], filters: FilterState) => {
         let result = [...videoList];
+
+        // お気に入りフィルター
+        if (filters.isFavoriteOnly) {
+            result = result.filter(video => video.isFavorite);
+        }
 
         // 検索フィルター
         if (filters.searchQuery) {
@@ -51,11 +40,6 @@ const MainContent: React.FC = () => {
                     video.tagIds?.includes(tagId)
                 )
             );
-        }
-
-        // お気に入りフィルター
-        if (filters.isFavoriteOnly) {
-            result = result.filter(video => video.isFavorite);
         }
 
         // ソート
@@ -77,7 +61,47 @@ const MainContent: React.FC = () => {
         });
 
         setFilteredVideos(result);
-    };
+    }, []);
+
+    // loadVideosをuseCallbackで最適化
+    const loadVideos = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            const videoList = await window.electronAPI.getVideos();
+            setVideos(videoList);
+            applyFilters(videoList, filterState);
+        } catch (error) {
+            console.error('Error loading videos:', error);
+            setVideos([]);
+            setFilteredVideos([]);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [filterState, applyFilters]);
+
+    // 動画一覧の更新を監視
+    useEffect(() => {
+        const unsubscribe = window.electronAPI.onVideosUpdated(() => {
+            loadVideos();
+        });
+
+        return () => unsubscribe();
+    }, [loadVideos]);
+
+    // フィルター変更の購読
+    useEffect(() => {
+        const unsubscribe = window.electronAPI.onFilterChanged((newFilter) => {
+            setFilterState(newFilter);
+            applyFilters(videos, newFilter);
+        });
+
+        return () => unsubscribe();
+    }, [videos, applyFilters]);
+
+    // 初期読み込み
+    useEffect(() => {
+        loadVideos();
+    }, [loadVideos, refreshTrigger]);
 
     const handleDeleteVideo = async (id: string) => {
         if (window.confirm('このビデオを削除してもよろしいですか？')) {
@@ -98,21 +122,6 @@ const MainContent: React.FC = () => {
             console.error('Error retrying thumbnails:', error);
         }
     };
-
-    // フィルター変更の購読
-    useEffect(() => {
-        const unsubscribe = window.electronAPI.onFilterChanged((newFilter) => {
-            setFilterState(newFilter);
-            applyFilters(videos, newFilter);
-        });
-
-        return () => unsubscribe();
-    }, [videos]);
-
-    // 初期読み込み
-    useEffect(() => {
-        loadVideos();
-    }, [refreshTrigger]);
 
     const handleFolderSelect = async () => {
         await window.electronAPI.selectFolder();

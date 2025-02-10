@@ -203,6 +203,21 @@ const Sidebar: React.FC = () => {
         }
     };
 
+    // お気に入りフィルターの切り替え
+    const handleFavoriteToggle = () => {
+        const newIsFavoriteOnly = !isFavoriteOnly;
+        setIsFavoriteOnly(newIsFavoriteOnly);
+
+        // フィルター変更をMainContentに通知
+        notifyFilterChange({
+            searchQuery,
+            selectedTagIds,
+            isFavoriteOnly: newIsFavoriteOnly,
+            sortBy,
+            sortOrder
+        });
+    };
+
     return (
         <div className="flex flex-col h-full bg-white dark:bg-gray-800">
             <Title />
@@ -226,7 +241,7 @@ const Sidebar: React.FC = () => {
                 {/* お気に入りフィルター */}
                 <div>
                     <button
-                        onClick={() => setIsFavoriteOnly(!isFavoriteOnly)}
+                        onClick={handleFavoriteToggle}
                         className={`flex items-center w-full px-3 py-2.5 rounded-xl transition-all ${isFavoriteOnly
                             ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                             : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
