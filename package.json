@@ -41,6 +41,7 @@
     "@types/react-dom": "^19.0.3",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
     "csstype": "^3.1.3",
     "electron": "^34.1.0",
     "electron-builder": "^25.1.8",
@@ -48,23 +49,34 @@
     "electron-reloader": "^1.2.3",
     "esbuild": "^0.24.2",
     "postcss": "^8.5.1",
+    "rimraf": "^5.0.5",
     "tailwindcss": "^3.4.1",
+    "tailwindcss-radix": "^2.9.0",
     "typescript": "^5.7.3",
     "undici-types": "^7.3.0",
-    "xmlbuilder": "^15.1.1",
-    "rimraf": "^5.0.5",
-    "cross-env": "^7.0.3"
+    "xmlbuilder": "^15.1.1"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
+    "@radix-ui/react-dialog": "^1.1.6",
+    "@radix-ui/react-dropdown-menu": "^2.1.6",
+    "@radix-ui/react-scroll-area": "^1.2.3",
+    "@radix-ui/react-slider": "^1.2.3",
+    "@radix-ui/react-tabs": "^1.1.3",
+    "@radix-ui/react-tooltip": "^1.1.8",
+    "chokidar": "^3.5.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "electron-store": "^10.0.1",
     "fluent-ffmpeg": "^2.1.3",
     "lodash": "^4.17.21",
     "lucide-react": "^0.474.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "chokidar": "^3.5.3"
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss-animate": "^1.0.7",
+    "vaul": "^0.9.9"
   },
   "optionalDependencies": {
     "@img/sharp-darwin-arm64": "^0.33.1",
@@ -94,19 +106,26 @@
       "target": [
         {
           "target": "zip",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "extraFiles": [
         {
           "from": "node_modules/@img/sharp-darwin-arm64",
           "to": "node_modules/@img/sharp-darwin-arm64",
-          "filter": ["**/*"]
+          "filter": [
+            "**/*"
+          ]
         },
         {
           "from": "node_modules/@img/sharp-darwin-x64",
           "to": "node_modules/@img/sharp-darwin-x64",
-          "filter": ["**/*"]
+          "filter": [
+            "**/*"
+          ]
         }
       ],
       "artifactName": "${productName}-${version}-${arch}-mac.${ext}",
@@ -122,11 +141,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "artifactName": "${productName}-${version}-${arch}-win.${ext}",
