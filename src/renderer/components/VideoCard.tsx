@@ -139,17 +139,15 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
     return (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-gray-100 dark:border-gray-700">
             {/* メタデータエリア */}
-            <div className="p-5">
-                {/* ヘッダー: ファイル名と操作ボタン */}
-                <div className="flex items-start justify-between mb-4">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100 text-base truncate hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex-1 pr-4"
-                        title={video.filename}>
-                        {video.filename}
-                    </h3>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+            <div className="p-3">
+                {/* タイトル行 */}
+                <div className="flex flex-col gap-1">
+                    {/* 1行目: タイトルとメタ情報 */}
+                    <div className="flex items-center gap-2">
+                        {/* 左側: お気に入りボタンとタイトル */}
                         <button
                             onClick={handleToggleFavorite}
-                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all hover:scale-105"
+                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all hover:scale-105 flex-shrink-0"
                             title={isFavorite ? 'お気に入りから削除' : 'お気に入りに追加'}
                         >
                             {isFavorite ? (
@@ -158,58 +156,51 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
                                 <StarOff className="w-4 h-4 text-gray-400 hover:text-yellow-400" />
                             )}
                         </button>
-                        {video.processingStatus !== 'processing' && (
-                            <button
-                                onClick={() => onDelete(video.id)}
-                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all"
-                                title="削除"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        )}
-                    </div>
-                </div>
+                        <h3 className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate flex-1"
+                            title={video.filename}>
+                            {video.filename}
+                        </h3>
 
-                {/* メタ情報とタグ */}
-                <div className="flex items-center justify-between">
-                    {/* 左側: メタ情報 */}
-                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
-                        <div className="flex items-center gap-1">
-                            <Play className="w-4 h-4" />
-                            <span className="font-medium">
-                                {(() => {
-                                    console.log('Duration:', currentVideo.metadata?.duration);
-                                    return currentVideo.metadata?.duration
-                                        ? formatDuration(currentVideo.metadata.duration)
-                                        : '--:--';
-                                })()}
+                        {/* 右側: メタ情報 */}
+                        <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                            <span className="flex items-center gap-1">
+                                <Play className="w-3 h-3" />
+                                {video.metadata?.duration ? formatDuration(video.metadata.duration) : '--:--'}
                             </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <span>{formatFileSize(currentVideo.fileSize)}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-                            <span>{currentVideo.playCount || 0}回再生</span>
+                            <span>{formatFileSize(video.fileSize)}</span>
+                            <span>{video.playCount || 0}回</span>
+                            <span className="text-[10px]">
+                                {formatDate(video.added)}
+                            </span>
+                            {video.processingStatus !== 'processing' && (
+                                <button
+                                    onClick={() => onDelete(video.id)}
+                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all"
+                                    title="削除"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                     </div>
 
-                    {/* 右側: タグ管理 */}
-                    <div className="flex items-center gap-2">
+                    {/* 2行目: タグ */}
+                    <div className="flex items-center gap-1.5">
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setIsTagEditModalOpen(true);
                             }}
-                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all hover:scale-105 flex-shrink-0"
                             title="タグを編集"
                         >
-                            <Tags className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                            <Tags className="w-4 h-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" />
                         </button>
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-1">
                             {getSelectedTags().map(tag => (
                                 <span
                                     key={tag.id}
-                                    className="px-2 py-0.5 text-xs rounded-full text-white shadow-sm transition-all hover:scale-105 hover:shadow"
+                                    className="px-1.5 py-0.5 text-[10px] rounded-full text-white shadow-sm"
                                     style={{ backgroundColor: tag.color }}
                                 >
                                     {tag.name}
@@ -217,17 +208,6 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
                             ))}
                         </div>
                     </div>
-                </div>
-
-                {/* 日時情報 */}
-                <div className="mt-3 flex items-center justify-end gap-3 text-xs text-gray-400 dark:text-gray-500">
-                    <span>追加: {formatDate(video.added)}</span>
-                    {video.lastPlayed && (
-                        <>
-                            <span>•</span>
-                            <span>最終再生: {formatDate(video.lastPlayed)}</span>
-                        </>
-                    )}
                 </div>
             </div>
 
