@@ -102,6 +102,15 @@ const AppContent = () => {
             alert(`Flow バージョン: ${version}`);
         });
 
+        // サムネイル再生成メニューのイベントリスナー
+        const unsubscribeRegenerateThumbnails = window.electronAPI.onMenuRegenerateThumbnails(async () => {
+            try {
+                await window.electronAPI.regenerateThumbnails();
+            } catch (error) {
+                console.error('Error regenerating thumbnails:', error);
+            }
+        });
+
         return () => {
             unsubscribeFiles();
             unsubscribeFolder();
@@ -109,6 +118,7 @@ const AppContent = () => {
             unsubscribeResetData();
             unsubscribeOpenStorePath();
             unsubscribeShowVersion();
+            unsubscribeRegenerateThumbnails();
         };
     }, []);
 

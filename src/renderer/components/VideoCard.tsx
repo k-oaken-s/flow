@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Tag, VideoFile } from '../../types/store';
 import { formatDate } from '../utils/date';
-import { Star, StarOff, Tags } from 'lucide-react';
+import { Star, StarOff, Tags, Play, Trash2 } from 'lucide-react';
 import TagEditModal from './TagEditModel';
 
 interface VideoCardProps {
@@ -78,11 +78,21 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
         }
     }, [video.id, video.processingStatus]);
 
+    // コンポーネントの先頭付近でuseEffectを追加
+    useEffect(() => {
+        console.log('Current Video Metadata:', currentVideo.metadata);
+    }, [currentVideo.metadata]);
+
     const formatDuration = (seconds: number): string => {
+        if (!seconds) return '--:--';
         const hrs = Math.floor(seconds / 3600);
         const mins = Math.floor((seconds % 3600) / 60);
         const secs = Math.floor(seconds % 60);
-        return `${hrs > 0 ? `${hrs}:` : ''}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+        if (hrs > 0) {
+            return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
     const formatFileSize = (bytes: number): string => {
@@ -127,82 +137,97 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-all hover:shadow-xl">
-            <div className="p-3">
-                {/* 3カラムグリッドレイアウト */}
-                <div className="grid grid-cols-3 gap-2 mb-2">
-                    {/* 左カラム: ファイル名とタグ */}
-                    <div className="flex flex-col justify-between">
-                        <h3 className="font-medium text-gray-800 dark:text-white text-sm truncate hover:text-gray-600 dark:hover:text-gray-300 transition-colors" title={video.filename}>
-                            {video.filename}
-                        </h3>
-                        <div className="flex items-center gap-1.5">
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsTagEditModalOpen(true);
-                                }}
-                                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-                            >
-                                <Tags className="w-3.5 h-3.5 text-gray-400" />
-                            </button>
-                            <div className="flex flex-wrap gap-1">
-                                {getSelectedTags().map(tag => (
-                                    <span
-                                        key={tag.id}
-                                        className="px-2 py-0.5 text-xs rounded-full text-white shadow-sm transition-transform hover:scale-105"
-                                        style={{ backgroundColor: tag.color }}
-                                    >
-                                        {tag.name}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 中央カラム: メタ情報 */}
-                    <div className="flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400">
-                        <div className="flex items-center justify-center gap-2">
-                            <span className="font-medium">{video.metadata?.duration ? formatDuration(video.metadata.duration) : '--:--'}</span>
-                            <span className="text-gray-300 dark:text-gray-600">•</span>
-                            <span>{formatFileSize(video.fileSize)}</span>
-                        </div>
-                        <div className="flex items-center justify-center">
-                            <span className="text-gray-400 dark:text-gray-500">{video.playCount || 0}回再生</span>
-                        </div>
-                    </div>
-
-                    {/* 右カラム: 日時情報とアクション */}
-                    <div className="flex flex-col justify-between items-end text-xs">
-                        <div className="flex items-center gap-2">
-                            <span className="text-gray-500 dark:text-gray-400">
-                                {formatDate(video.added)}
-                            </span>
-                            <button
-                                onClick={handleToggleFavorite}
-                                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all hover:scale-105"
-                            >
-                                {isFavorite ? (
-                                    <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
-                                ) : (
-                                    <StarOff className="w-4 h-4 text-gray-400" />
-                                )}
-                            </button>
-                            {video.processingStatus !== 'processing' && (
-                                <button
-                                    onClick={() => onDelete(video.id)}
-                                    className="text-red-500 hover:text-red-600 text-xs"
-                                >
-                                    削除
-                                </button>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-gray-100 dark:border-gray-700">
+            {/* メタデータエリア */}
+            <div className="p-5">
+                {/* ヘッダー: ファイル名と操作ボタン */}
+                <div className="flex items-start justify-between mb-4">
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100 text-base truncate hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex-1 pr-4"
+                        title={video.filename}>
+                        {video.filename}
+                    </h3>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <button
+                            onClick={handleToggleFavorite}
+                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all hover:scale-105"
+                            title={isFavorite ? 'お気に入りから削除' : 'お気に入りに追加'}
+                        >
+                            {isFavorite ? (
+                                <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
+                            ) : (
+                                <StarOff className="w-4 h-4 text-gray-400 hover:text-yellow-400" />
                             )}
-                        </div>
-                        {video.lastPlayed && (
-                            <span className="text-gray-500 dark:text-gray-400">
-                                最終再生: {formatDate(video.lastPlayed)}
-                            </span>
+                        </button>
+                        {video.processingStatus !== 'processing' && (
+                            <button
+                                onClick={() => onDelete(video.id)}
+                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all"
+                                title="削除"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
                         )}
                     </div>
+                </div>
+
+                {/* メタ情報とタグ */}
+                <div className="flex items-center justify-between">
+                    {/* 左側: メタ情報 */}
+                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
+                        <div className="flex items-center gap-1">
+                            <Play className="w-4 h-4" />
+                            <span className="font-medium">
+                                {(() => {
+                                    console.log('Duration:', currentVideo.metadata?.duration);
+                                    return currentVideo.metadata?.duration
+                                        ? formatDuration(currentVideo.metadata.duration)
+                                        : '--:--';
+                                })()}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <span>{formatFileSize(currentVideo.fileSize)}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                            <span>{currentVideo.playCount || 0}回再生</span>
+                        </div>
+                    </div>
+
+                    {/* 右側: タグ管理 */}
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsTagEditModalOpen(true);
+                            }}
+                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                            title="タグを編集"
+                        >
+                            <Tags className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                        </button>
+                        <div className="flex flex-wrap gap-1.5">
+                            {getSelectedTags().map(tag => (
+                                <span
+                                    key={tag.id}
+                                    className="px-2 py-0.5 text-xs rounded-full text-white shadow-sm transition-all hover:scale-105 hover:shadow"
+                                    style={{ backgroundColor: tag.color }}
+                                >
+                                    {tag.name}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* 日時情報 */}
+                <div className="mt-3 flex items-center justify-end gap-3 text-xs text-gray-400 dark:text-gray-500">
+                    <span>追加: {formatDate(video.added)}</span>
+                    {video.lastPlayed && (
+                        <>
+                            <span>•</span>
+                            <span>最終再生: {formatDate(video.lastPlayed)}</span>
+                        </>
+                    )}
                 </div>
             </div>
 

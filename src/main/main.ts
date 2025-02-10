@@ -57,11 +57,27 @@ async function generateThumbnails(
         return;
       }
 
+      // メタデータをログ出力
+      console.log('Video metadata:', metadata);
+
       const duration = metadata.format.duration;
       if (!duration) {
         console.error('No duration found in video metadata');
         reject(new Error('No duration found in video metadata'));
         return;
+      }
+
+      // ビデオのメタデータを更新
+      if (storeManager) {
+        storeManager.updateVideo(videoId, {
+          metadata: {
+            duration: parseFloat(duration),
+            width: metadata.streams[0]?.width,
+            height: metadata.streams[0]?.height,
+            codec: metadata.streams[0]?.codec_name,
+            bitrate: metadata.format.bit_rate
+          }
+        });
       }
 
       const thumbnails: string[] = [];
@@ -78,8 +94,7 @@ async function generateThumbnails(
           return new Promise<string>((resolveThumb, rejectThumb) => {
             const currentIndex = startIndex + i;
             const outputPath = path.join(outputDir, `thumb_${currentIndex}.jpg`);
-            console.log(`Generating thumbnail ${currentIndex + 1}/${options.maxCount} at ${timestamp}s`);
-
+            
             ffmpeg(videoPath)
               .screenshots({
                 timestamps: [timestamp],
@@ -90,11 +105,21 @@ async function generateThumbnails(
               })
               .on('end', () => {
                 totalProcessed++;
-                console.log(`Thumbnail ${currentIndex + 1}/${options.maxCount} generated successfully`);
+                const progress = Math.round((totalProcessed / options.maxCount) * 100);
+                
+                // 進捗状態を更新
+                if (storeManager) {
+                  storeManager.updateVideo(videoId, {
+                    processingProgress: progress
+                  });
+                }
+                
+                // 進捗を通知
                 mainWindow?.webContents.send('thumbnail-progress', {
                   videoId,
-                  progress: (totalProcessed / options.maxCount) * 100
+                  progress
                 });
+                
                 resolveThumb(outputPath);
               })
               .on('error', (err: Error) => {
@@ -365,6 +390,25 @@ function createWindow() {
         },
         { type: 'separator' },
         {
+          label: 'サムネイルを再生成',
+          click: async () => {
+            if (mainWindow) {
+              const response = await dialog.showMessageBox(mainWindow, {
+                type: 'question',
+                buttons: ['はい', 'いいえ'],
+                defaultId: 1,
+                title: 'サムネイル再生成',
+                message: '全ての動画のサムネイルを再生成しますか？\nこの処理には時間がかかる場合があります。'
+              });
+
+              if (response.response === 0) {  // 「はい」が選択された場合
+                mainWindow.webContents.send('menu-regenerate-thumbnails');
+              }
+            }
+          }
+        },
+        { type: 'separator' },
+        {
           label: 'データをリセット',
           click: () => {
             mainWindow?.webContents.send('menu-reset-data');
@@ -473,56 +517,52 @@ function setupIpcHandlers() {
         const newVideos = storeManager.addVideoEntries(result.filePaths);
         console.log('Added new videos:', newVideos);
         
-        if (newVideos.length > 0) {
-          // サムネイル生成を開始
-          for (const video of newVideos) {
-            console.log('Starting thumbnail generation for video:', video.id);
-            
-            // メインプロセスでサムネイル生成を実行
+        for (const video of newVideos) {
+          try {
+            // メタデータを取得
+            const metadata = await new Promise((resolve, reject) => {
+              ffmpeg.ffprobe(video.path, (err: any, metadata: any) => {
+                if (err) reject(err);
+                else resolve({
+                  duration: parseFloat(metadata.format.duration),
+                  width: metadata.streams[0]?.width,
+                  height: metadata.streams[0]?.height,
+                  codec: metadata.streams[0]?.codec_name,
+                  bitrate: metadata.format.bit_rate
+                });
+              });
+            });
+
+            console.log('Extracted metadata:', metadata); // デバッグ用ログ
+
+            // メタデータを更新
+            storeManager.updateVideo(video.id, { metadata });
+
+            // サムネイル生成を開始
             const thumbnailDir = path.join(app.getPath('userData'), 'thumbnails', video.id);
             await fs.promises.mkdir(thumbnailDir, { recursive: true });
             
-            try {
-              const metadata = await new Promise((resolve, reject) => {
-                ffmpeg.ffprobe(video.path, (err: any, metadata: any) => {
-                  if (err) reject(err);
-                  else resolve({
-                    duration: metadata.format.duration,
-                    width: metadata.streams[0].width,
-                    height: metadata.streams[0].height,
-                    codec: metadata.streams[0].codec_name,
-                    bitrate: metadata.format.bit_rate
-                  });
-                });
+            const thumbnails = await generateThumbnails(video.id, video.path, thumbnailDir, defaultThumbnailSettings);
+            
+            // 少なくとも1つのサムネイルが生成できた場合は成功とする
+            if (thumbnails.length > 0) {
+              storeManager.updateVideo(video.id, {
+                metadata,
+                thumbnails,
+                processingStatus: 'completed',
+                processingProgress: 100
               });
-            
-              const settings = storeManager.getSettings().thumbnails;
-              const thumbnails = await generateThumbnails(video.id, video.path, thumbnailDir, settings);
-            
-              // 少なくとも1つのサムネイルが生成できた場合は成功とする
-              if (thumbnails.length > 0) {
-                storeManager.updateVideo(video.id, {
-                  metadata,
-                  thumbnails,
-                  processingStatus: 'completed',
-                  processingProgress: 100
-                });
-              } else {
-                storeManager.updateVideo(video.id, {
-                  processingStatus: 'error'
-                });
-              }
-            } catch (error) {
-              console.error('Error generating thumbnails:', error);
+            } else {
               storeManager.updateVideo(video.id, {
                 processingStatus: 'error'
               });
             }
+          } catch (error) {
+            console.error('Error processing video:', error);
           }
-  
-          mainWindow?.webContents.send('videos-updated');
         }
   
+        mainWindow?.webContents.send('videos-updated');
         return newVideos;
       }
   
@@ -928,6 +968,83 @@ ipcMain.on('window-control', (_, action: string) => {
             mainWindow.close();
             break;
     }
+});
+
+// サムネイル再生成のハンドラー
+ipcMain.handle('regenerate-thumbnails', async () => {
+    if (!storeManager) return false;
+
+    const videos = storeManager.getVideos();
+    let processedCount = 0;
+
+    // 全ての動画を処理中状態に設定
+    for (const video of videos) {
+        storeManager.updateVideo(video.id, {
+            processingStatus: 'processing',
+            processingProgress: 0,
+            thumbnails: [] // 既存のサムネイルをクリア
+        });
+    }
+    // 一括で状態更新を通知
+    mainWindow?.webContents.send('videos-updated');
+
+    for (const video of videos) {
+        try {
+            // サムネイル保存用のディレクトリを作成/クリア
+            const thumbnailDir = path.join(app.getPath('userData'), 'thumbnails', video.id);
+            if (fs.existsSync(thumbnailDir)) {
+                fs.rmSync(thumbnailDir, { recursive: true, force: true });
+            }
+            await fs.promises.mkdir(thumbnailDir, { recursive: true });
+
+            // メタデータを取得
+            const metadata = await new Promise((resolve, reject) => {
+                ffmpeg.ffprobe(video.path, (err: any, metadata: any) => {
+                    if (err) reject(err);
+                    else resolve({
+                        duration: parseFloat(metadata.format.duration),
+                        width: metadata.streams[0]?.width,
+                        height: metadata.streams[0]?.height,
+                        codec: metadata.streams[0]?.codec_name,
+                        bitrate: metadata.format.bit_rate
+                    });
+                });
+            });
+
+            // サムネイルを生成
+            const thumbnails = await generateThumbnails(
+                video.id,
+                video.path,
+                thumbnailDir,
+                defaultThumbnailSettings
+            );
+
+            // 更新を保存して通知
+            storeManager.updateVideo(video.id, {
+                metadata,
+                thumbnails,
+                processingStatus: 'completed',
+                processingProgress: 100
+            });
+
+            // 完了数を更新
+            processedCount++;
+            console.log(`Overall progress: ${processedCount}/${videos.length}`);
+
+            // 進捗状況を通知
+            mainWindow?.webContents.send('videos-updated');
+
+        } catch (error) {
+            console.error(`Error regenerating thumbnails for video ${video.filename}:`, error);
+            storeManager.updateVideo(video.id, {
+                processingStatus: 'error',
+                processingProgress: 0
+            });
+            mainWindow?.webContents.send('videos-updated');
+        }
+    }
+
+    return true;
 });
 
 };

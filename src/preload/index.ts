@@ -65,6 +65,10 @@ interface ElectronAPI {
   requestInitialTheme: () => Promise<void>;
 
   windowControl: (action: 'minimize' | 'maximize' | 'close') => void;
+
+  regenerateThumbnails: () => Promise<void>;
+
+  onMenuRegenerateThumbnails: (callback: () => void) => () => void;
 }
 
 declare global {
@@ -211,5 +215,15 @@ getStatistics: () => ipcRenderer.invoke('get-statistics'),
 
   windowControl: (action: 'minimize' | 'maximize' | 'close') => {
     ipcRenderer.send('window-control', action);
+  },
+
+  regenerateThumbnails: () => ipcRenderer.invoke('regenerate-thumbnails'),
+
+  onMenuRegenerateThumbnails: (callback: () => void) => {
+    const subscription = () => callback();
+    ipcRenderer.on('menu-regenerate-thumbnails', subscription);
+    return () => {
+      ipcRenderer.removeListener('menu-regenerate-thumbnails', subscription);
+    };
   },
 });
