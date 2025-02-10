@@ -20,7 +20,12 @@
     "typeRoots": [
       "./node_modules/@types",
       "./src/types"
-    ]
+    ],
+    "paths": {
+      "@/*": ["src/renderer/*"],
+      "@lib": ["src/lib"],
+      "@lib/*": ["src/lib/*"]
+    }
   },
   "include": [
     "src/**/*",
