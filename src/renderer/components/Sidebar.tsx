@@ -8,6 +8,7 @@ import { FilterState } from 'src/types/filter';
 import { ChevronDown, Search, Star, X } from 'lucide-react';
 import { debounce } from 'lodash';
 import Title from './Title';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Sidebar: React.FC = () => {
     // フィルター状態
@@ -333,103 +334,114 @@ const Sidebar: React.FC = () => {
             <div className="border-t border-gray-200 dark:border-gray-700">
                 <button
                     onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                    className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-gray-500 dark:text-gray-400"
+                    className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                 >
                     <span>設定</span>
                     <ChevronDown
-                        className={`w-4 h-4 transform transition-transform ${isSettingsOpen ? 'rotate-180' : ''
-                            }`}
+                        className={`w-4 h-4 transform transition-transform duration-200 ${
+                            isSettingsOpen ? 'rotate-180' : ''
+                        }`}
                     />
                 </button>
-                {isSettingsOpen && (
-                    <div className="p-4 space-y-2">
-                        <button
-                            onClick={() => window.electronAPI.selectFiles()}
-                            className="w-full px-2 py-1 text-sm text-left rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                <AnimatePresence>
+                    {isSettingsOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
                         >
-                            ファイルを追加
-                        </button>
-                        <button
-                            onClick={() => window.electronAPI.selectFolder()}
-                            className="w-full px-2 py-1 text-sm text-left rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                        >
-                            フォルダを追加
-                        </button>
-                        <button
-                            onClick={() => setIsTagManagerOpen(true)}
-                            className="w-full px-2 py-1 text-sm text-left rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                        >
-                            タグ管理
-                        </button>
+                            <div className="p-4 space-y-2">
+                                <button
+                                    onClick={() => window.electronAPI.selectFiles()}
+                                    className="w-full px-2 py-1 text-sm text-left rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                                >
+                                    ファイルを追加
+                                </button>
+                                <button
+                                    onClick={() => window.electronAPI.selectFolder()}
+                                    className="w-full px-2 py-1 text-sm text-left rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                                >
+                                    フォルダを追加
+                                </button>
+                                <button
+                                    onClick={() => setIsTagManagerOpen(true)}
+                                    className="w-full px-2 py-1 text-sm text-left rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                                >
+                                    タグ管理
+                                </button>
 
-                        {/* 区切り線 */}
-                        {/* <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div> */}
+                                {/* 区切り線 */}
+                                {/* <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div> */}
 
-                        {/* 監視フォルダ */}
-                        <div className="mb-6">
-                            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">監視フォルダ</h3>
-                            {watchFolders.length === 0 ? (
-                                <p className="text-sm text-gray-400 dark:text-gray-500 italic">
-                                    監視フォルダが設定されていません
-                                </p>
-                            ) : (
-                                <div className="space-y-2">
-                                    {watchFolders.map(folder => (
-                                        <div
-                                            key={folder.id}
-                                            className="group flex items-start justify-between p-2 rounded bg-gray-50 dark:bg-gray-700/50 text-sm"
-                                        >
-                                            <div className="flex-1 min-w-0">
-                                                <p className="truncate" title={folder.path}>
-                                                    {folder.path}
-                                                </p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                    {new Date(folder.added).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                            <button
-                                                onClick={() => handleRemoveWatchFolder(folder.id)}
-                                                className="ml-2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                title="監視フォルダを削除"
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </button>
+                                {/* 監視フォルダ */}
+                                <div className="mb-6">
+                                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">監視フォルダ</h3>
+                                    {watchFolders.length === 0 ? (
+                                        <p className="text-sm text-gray-400 dark:text-gray-500 italic">
+                                            監視フォルダが設定されていません
+                                        </p>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {watchFolders.map(folder => (
+                                                <div
+                                                    key={folder.id}
+                                                    className="group flex items-start justify-between p-2 rounded bg-gray-50 dark:bg-gray-700/50 text-sm"
+                                                >
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="truncate" title={folder.path}>
+                                                            {folder.path}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                            {new Date(folder.added).toLocaleDateString()}
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleRemoveWatchFolder(folder.id)}
+                                                        className="ml-2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        title="監視フォルダを削除"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
-                            )}
-                        </div>
 
-                        {/* 区切り線 */}
-                        {/* <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div> */}
+                                {/* 区切り線 */}
+                                {/* <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div> */}
 
-                        {/* データリセット */}
-                        <button
-                            onClick={handleResetStore}
-                            className="w-full px-2 py-1 text-sm text-left text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                        >
-                            データをリセット
-                        </button>
+                                {/* データリセット */}
+                                <button
+                                    onClick={handleResetStore}
+                                    className="w-full px-2 py-1 text-sm text-left text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                                >
+                                    データをリセット
+                                </button>
 
-                        <div className="flex items-center justify-between px-2 py-1">
-                            <span className="text-sm">ダークモード</span>
-                            <ThemeToggle />
-                        </div>
+                                <div className="flex items-center justify-between px-2 py-1">
+                                    <span className="text-sm">ダークモード</span>
+                                    <ThemeToggle />
+                                </div>
 
-                        {/* バージョン情報 */}
-                        <div className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400">
-                            バージョン: {appVersion}
-                        </div>
+                                {/* バージョン情報 */}
+                                <div className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400">
+                                    バージョン: {appVersion}
+                                </div>
 
-                        {/* storeの中をFinderで開くデバッグ用ボタンの追加 */}
-                        <button
-                            onClick={() => window.electronAPI.openStorePath()}
-                            className="w-full px-2 py-1 text-sm text-left text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded"
-                        >
-                            データフォルダを開く
-                        </button>
-                    </div>
-                )}
+                                {/* storeの中をFinderで開くデバッグ用ボタンの追加 */}
+                                <button
+                                    onClick={() => window.electronAPI.openStorePath()}
+                                    className="w-full px-2 py-1 text-sm text-left text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded"
+                                >
+                                    データフォルダを開く
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* タグ管理モーダル */}
