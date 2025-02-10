@@ -156,6 +156,9 @@
       "artifactName": "${productName}-${version}-${arch}-win.${ext}",
       "icon": "build/icon.ico"
     },
+    "linux": {
+      "icon": "build/icons"
+    },
     "appId": "com.koakens.flow",
     "productName": "Flow",
     "publish": {

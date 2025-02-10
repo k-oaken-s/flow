@@ -324,6 +324,7 @@ function createWindow() {
     center: true,          // 画面中央に配置
     frame: false,          // カスタムフレームを使用
     backgroundColor: '#000000',  // ウィンドウの背景色（ダークモード対応）
+    icon: path.join(__dirname, '../../build/icons/1024x1024.png'), // アイコンパスを追加
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
