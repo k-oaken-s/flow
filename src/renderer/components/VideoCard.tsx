@@ -24,6 +24,22 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
         return tags.filter(tag => video.tagIds.includes(tag.id));
     };
 
+    const getTagColor = (index: number) => {
+        const colors = [
+            '#3B82F6', // blue-500
+            '#10B981', // emerald-500
+            '#F59E0B', // amber-500
+            '#EF4444', // red-500
+            '#8B5CF6', // violet-500
+            '#EC4899', // pink-500
+            '#6366F1', // indigo-500
+            '#14B8A6', // teal-500
+            '#F97316', // orange-500
+            '#84CC16', // lime-500
+        ];
+        return colors[index % colors.length];
+    };
+
     // タグ情報を取得
     useEffect(() => {
         const loadTags = async () => {
@@ -206,8 +222,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
                             {getSelectedTags().map(tag => (
                                 <span
                                     key={tag.id}
-                                    className="px-1.5 py-0.5 text-[10px] rounded-full text-white shadow-sm"
-                                    style={{ backgroundColor: tag.color }}
+                                    className="px-1.5 py-0.5 text-[10px] rounded-full text-white shadow-sm bg-blue-500"
                                 >
                                     {tag.name}
                                 </span>

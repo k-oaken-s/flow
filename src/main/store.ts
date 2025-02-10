@@ -272,12 +272,11 @@ class StoreManager {
     }
 
     // タグの追加
-    addTag(name: string, color: string): Tag {
+    addTag(name: string): Tag {
         const tags = this.getTags();
         const newTag: Tag = {
             id: randomUUID(),
-            name,
-            color
+            name
         };
         this.store?.set('tags', [...tags, newTag]);
         return newTag;

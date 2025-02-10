@@ -16,7 +16,7 @@ interface ElectronAPI {
   openVideo: (path: string) => Promise<void>;
   incrementPlayCount: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
-  addTag: (name: string, color: string) => Promise<void>;
+  addTag: (name: string) => Promise<void>;
   removeTag: (id: string) => Promise<void>;
   getTags: () => Promise<any[]>;
   updateVideoTags: (videoId: string, tagIds: string[]) => Promise<void>;
@@ -100,7 +100,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   incrementPlayCount: (videoId: string) => ipcRenderer.invoke('increment-play-count', videoId),
   toggleFavorite: (videoId: string) => ipcRenderer.invoke('toggle-favorite', videoId),
   getTags: () => ipcRenderer.invoke('get-tags'),
-  addTag: (name: string, color: string) => ipcRenderer.invoke('add-tag', name, color),
+  addTag: (name: string) => ipcRenderer.invoke('add-tag', name),
   removeTag: (id: string) => ipcRenderer.invoke('remove-tag', id),
   updateVideoTags: (videoId: string, tagIds: string[]) => 
       ipcRenderer.invoke('update-video-tags', videoId, tagIds),
