@@ -137,7 +137,10 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-gray-100 dark:border-gray-700">
+        <div
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-gray-100 dark:border-gray-700 cursor-pointer select-none"
+            onDoubleClick={handleOpenVideo}
+        >
             {/* メタデータエリア */}
             <div className="p-3">
                 {/* タイトル行 */}
@@ -147,6 +150,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
                         {/* 左側: お気に入りボタンとタイトル */}
                         <button
                             onClick={handleToggleFavorite}
+                            onDoubleClick={(e) => e.stopPropagation()}
                             className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all hover:scale-105 flex-shrink-0"
                             title={isFavorite ? 'お気に入りから削除' : 'お気に入りに追加'}
                         >
@@ -175,6 +179,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
                             {video.processingStatus !== 'processing' && (
                                 <button
                                     onClick={() => onDelete(video.id)}
+                                    onDoubleClick={(e) => e.stopPropagation()}
                                     className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all"
                                     title="削除"
                                 >
@@ -191,6 +196,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
                                 e.stopPropagation();
                                 setIsTagEditModalOpen(true);
                             }}
+                            onDoubleClick={(e) => e.stopPropagation()}
                             className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all hover:scale-105 flex-shrink-0"
                             title="タグを編集"
                         >
