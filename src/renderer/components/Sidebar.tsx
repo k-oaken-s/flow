@@ -5,7 +5,7 @@ import TagManagerModal from './TagManagerModal';
 import { formatDuration, formatFileSize } from '../utils/format';
 import { Statistics } from 'src/types/global';
 import { FilterState } from 'src/types/filter';
-import { ChevronDown, Search, Star, X } from 'lucide-react';
+import { Search, Star, X, FolderOpen, Clock, Hash, SortAsc, ChevronDown, LayoutGrid } from 'lucide-react';
 import { debounce } from 'lodash';
 import Title from './Title';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -126,7 +126,8 @@ const Sidebar: React.FC = () => {
         }
     };
 
-    const handleSearch = debounce((query: string) => {
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const query = e.target.value;
         setSearchQuery(query);
         notifyFilterChange({
             searchQuery: query,
@@ -135,7 +136,7 @@ const Sidebar: React.FC = () => {
             sortBy,
             sortOrder
         });
-    }, 300) as (query: string) => void;
+    };
 
     // 監視フォルダの読み込み
     const loadWatchFolders = useCallback(async () => {
@@ -203,101 +204,58 @@ const Sidebar: React.FC = () => {
     };
 
     return (
-        <div className="w-64 h-screen bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-r border-gray-200 dark:border-gray-700 flex flex-col">
-            {/* タイトル */}
+        <div className="flex flex-col h-full bg-white dark:bg-gray-800">
             <Title />
 
-            {/* メニュー */}
-            <div className="p-4 flex-grow overflow-auto">
-                {/* 検索バー */}
-                <div className="mb-6">
-                    <div className="relative">
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => handleSearch(e.target.value)}
-                            placeholder="動画を検索..."
-                            className="w-full pl-10 pr-3 py-2 bg-transparent border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600"
-                        />
-                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                    </div>
+            {/* 検索バー */}
+            <div className="p-4">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="動画を検索..."
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all"
+                    />
                 </div>
+            </div>
 
-                {/* フィルターリセットボタン */}
-                <button
-                    onClick={handleResetFilters}
-                    className="w-full mb-4 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
-                >
-                    フィルターをリセット
-                </button>
-
+            {/* フィルターセクション */}
+            <div className="flex-1 overflow-y-auto px-3 space-y-6">
                 {/* お気に入りフィルター */}
-                <div className="mb-6">
+                <div>
                     <button
-                        onClick={() => {
-                            setIsFavoriteOnly(!isFavoriteOnly);
-                            notifyFilterChange({
-                                searchQuery,
-                                selectedTagIds,
-                                isFavoriteOnly: !isFavoriteOnly,
-                                sortBy,
-                                sortOrder
-                            });
-                        }}
-                        className={`flex items-center space-x-2 px-3 py-2 rounded w-full ${isFavoriteOnly
-                            ? 'bg-blue-500 text-white'
-                            : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                        onClick={() => setIsFavoriteOnly(!isFavoriteOnly)}
+                        className={`flex items-center w-full px-3 py-2.5 rounded-xl transition-all ${isFavoriteOnly
+                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                             }`}
                     >
-                        <Star className={`h-4 w-4 ${isFavoriteOnly ? 'fill-current' : ''}`} />
-                        <span>お気に入りのみ表示</span>
+                        <Star className={`w-4 h-4 ${isFavoriteOnly ? 'fill-current' : ''}`} />
+                        <span className="ml-3 text-sm font-medium">お気に入り</span>
+                        {isFavoriteOnly && (
+                            <span className="ml-auto text-xs font-medium px-2 py-1 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
+                                ON
+                            </span>
+                        )}
                     </button>
                 </div>
 
-                {/* タグフィルター */}
-                <div className="mb-6">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">タグ</h3>
-                    <div className="space-y-1">
-                        {tags.map(tag => (
-                            <button
-                                key={tag.id}
-                                onClick={() => handleTagToggle(tag.id)}
-                                className={`flex items-center w-full px-2 py-1 rounded ${selectedTagIds.includes(tag.id)
-                                    ? 'text-white'
-                                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                                    }`}
-                                style={{
-                                    backgroundColor: selectedTagIds.includes(tag.id) ? tag.color : undefined
-                                }}
-                            >
-                                <div
-                                    className="w-3 h-3 rounded-full mr-2"
-                                    style={{ backgroundColor: tag.color }}
-                                />
-                                <span className="text-sm">{tag.name}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
                 {/* 並び替え */}
-                <div className="mb-6">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">並び替え</h3>
+                <div className="space-y-2">
+                    <div className="flex items-center px-3">
+                        <LayoutGrid className="w-4 h-4 text-gray-400" />
+                        <h3 className="ml-2 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">表示順</h3>
+                        <ChevronDown className="w-4 h-4 ml-auto text-gray-400" />
+                    </div>
                     <select
-                        className="w-full px-2 py-1 text-sm bg-transparent border rounded dark:border-gray-600"
                         value={`${sortBy}-${sortOrder}`}
                         onChange={(e) => {
-                            const [by, order] = e.target.value.split('-') as [typeof sortBy, typeof sortOrder];
-                            setSortBy(by);
-                            setSortOrder(order);
-                            notifyFilterChange({
-                                searchQuery,
-                                selectedTagIds,
-                                isFavoriteOnly,
-                                sortBy: by,
-                                sortOrder: order
-                            });
+                            const [by, order] = e.target.value.split('-');
+                            handleSortChange(by as typeof sortBy, order as typeof sortOrder);
                         }}
+                        className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all"
                     >
                         <option value="added-desc">追加日時（新しい順）</option>
                         <option value="added-asc">追加日時（古い順）</option>
@@ -308,26 +266,56 @@ const Sidebar: React.FC = () => {
                     </select>
                 </div>
 
-                {/* 監視フォルダセクション */}
-                <div className="mb-6">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">監視フォルダ</h3>
+                {/* タグフィルター */}
+                <div className="space-y-2">
+                    <div className="flex items-center px-3">
+                        <Hash className="w-4 h-4 text-gray-400" />
+                        <h3 className="ml-2 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">タグ</h3>
+                    </div>
+                    <div className="space-y-1">
+                        {tags.map(tag => (
+                            <button
+                                key={tag.id}
+                                onClick={() => handleTagToggle(tag.id)}
+                                className={`flex items-center justify-between w-full px-3 py-2 rounded-xl transition-all ${selectedTagIds.includes(tag.id)
+                                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                    : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                    }`}
+                            >
+                                <span className="text-sm">{tag.name}</span>
+                                {selectedTagIds.includes(tag.id) && (
+                                    <span className="text-xs font-medium px-2 py-1 rounded-md bg-blue-100 dark:bg-blue-900/40">
+                                        選択中
+                                    </span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 監視フォルダ */}
+                <div className="space-y-2">
+                    <div className="flex items-center px-3">
+                        <FolderOpen className="w-4 h-4 text-gray-400" />
+                        <h3 className="ml-2 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">監視フォルダ</h3>
+                    </div>
                     {watchFolders.length === 0 ? (
-                        <p className="text-sm text-gray-400 dark:text-gray-500 italic">
+                        <p className="px-3 text-sm text-gray-400 dark:text-gray-500 italic">
                             監視フォルダが設定されていません
                         </p>
                     ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                             {watchFolders.map(folder => (
                                 <div
                                     key={folder.id}
-                                    className="group flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-gray-700/50 text-sm"
+                                    className="group flex items-center px-3 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
                                 >
-                                    <p className="truncate pr-2 text-gray-600 dark:text-gray-300" title={folder.path}>
+                                    <p className="flex-1 truncate text-sm text-gray-600 dark:text-gray-300" title={folder.path}>
                                         {folder.path}
                                     </p>
                                     <button
                                         onClick={() => handleRemoveWatchFolder(folder.id)}
-                                        className="shrink-0 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="ml-2 p-1 opacity-0 group-hover:opacity-100 hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-500 rounded-lg transition-all"
                                         title="監視フォルダを削除"
                                     >
                                         <X className="w-4 h-4" />
@@ -339,22 +327,22 @@ const Sidebar: React.FC = () => {
                 </div>
             </div>
 
-            {/* 統計情報セクション */}
+            {/* 統計情報 */}
             {stats && (
-                <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">統計情報</h3>
-                    <div className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
-                        <div className="flex justify-between">
-                            <span>総動画数:</span>
-                            <span>{stats.totalVideos}</span>
+                <div className="p-4 mt-auto border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <h3 className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-3">統計情報</h3>
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
+                            <span>総動画数</span>
+                            <span className="font-medium">{stats.totalVideos}</span>
                         </div>
-                        <div className="flex justify-between">
-                            <span>総再生時間:</span>
-                            <span>{formatDuration(stats.totalDuration)}</span>
+                        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
+                            <span>総再生時間</span>
+                            <span className="font-medium">{formatDuration(stats.totalDuration)}</span>
                         </div>
-                        <div className="flex justify-between">
-                            <span>使用容量:</span>
-                            <span>{formatFileSize(stats.totalSize)}</span>
+                        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
+                            <span>使用容量</span>
+                            <span className="font-medium">{formatFileSize(stats.totalSize)}</span>
                         </div>
                     </div>
                 </div>

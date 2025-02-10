@@ -127,27 +127,31 @@ const MainContent: React.FC = () => {
     return (
         <div className="flex flex-col flex-1 h-screen bg-gray-50 dark:bg-gray-900">
             <div className="flex-1 p-6 overflow-auto">
-                {isLoading ? (
-                    <div className="flex items-center justify-center h-full">
-                        <div className="text-gray-500 dark:text-gray-400">読み込み中...</div>
-                    </div>
-                ) : filteredVideos.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
-                        <p className="mb-4">動画が見つかりません</p>
-                        <div className="flex gap-4">
+                {videos.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-[calc(100vh-12rem)] space-y-4">
+                        <p className="text-gray-500 dark:text-gray-400">
+                            動画ファイルが追加されていません
+                        </p>
+                        <div className="flex gap-2">
                             <button
-                                onClick={handleFileSelect}
+                                onClick={() => window.electronAPI.selectFiles()}
                                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                             >
-                                動画を追加
+                                ファイルを追加
                             </button>
                             <button
-                                onClick={handleFolderSelect}
-                                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                onClick={() => window.electronAPI.selectFolder()}
+                                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                             >
                                 フォルダを追加
                             </button>
                         </div>
+                    </div>
+                ) : filteredVideos.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-[calc(100vh-12rem)]">
+                        <p className="text-gray-500 dark:text-gray-400">
+                            条件に一致する動画が見つかりませんでした
+                        </p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-y-4">

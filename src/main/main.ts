@@ -1,6 +1,6 @@
 import StoreManager, { VideoFile, initializeStore, getStore } from './store';
 import type { FSWatcher } from 'chokidar';
-import { app, BrowserWindow, ipcMain, dialog, shell, Menu, MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell, Menu, MenuItemConstructorOptions, screen } from 'electron';
 import { promisify } from 'util';
 
 const path = require('path');
@@ -308,9 +308,22 @@ function createWindow() {
   
   const preloadPath = path.join(__dirname, '..', 'preload', 'index.js');
   
+  // ディスプレイの情報を取得
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.workAreaSize;
+
+  // ウィンドウサイズの設定
+  const windowWidth = Math.min(1440, Math.round(width * 0.8));  // 最大1440px、画面の80%
+  const windowHeight = Math.min(900, Math.round(height * 0.8)); // 最大900px、画面の80%
+
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: windowWidth,
+    height: windowHeight,
+    minWidth: 1024,        // 最小ウィンドウサイズ
+    minHeight: 680,        // 最小ウィンドウサイズ
+    center: true,          // 画面中央に配置
+    frame: false,          // カスタムフレームを使用
+    backgroundColor: '#000000',  // ウィンドウの背景色（ダークモード対応）
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -431,6 +444,9 @@ function createWindow() {
   const indexPath = path.join(__dirname, '..', 'index.html');
   console.log('Loading index from:', indexPath);
   mainWindow.loadFile(indexPath);
+
+  // ウィンドウの位置を中央に設定
+  mainWindow.center();
 }
 
 function setupIpcHandlers() {
@@ -880,6 +896,27 @@ ipcMain.handle('get-video', async (_, videoId: string) => {
 // 初期テーマを返すハンドラー
 ipcMain.handle('request-initial-theme', () => {
     return isDarkMode;
+});
+
+// ウィンドウコントロール
+ipcMain.on('window-control', (_, action: string) => {
+    if (!mainWindow) return;
+
+    switch (action) {
+        case 'minimize':
+            mainWindow.minimize();
+            break;
+        case 'maximize':
+            if (mainWindow.isMaximized()) {
+                mainWindow.unmaximize();
+            } else {
+                mainWindow.maximize();
+            }
+            break;
+        case 'close':
+            mainWindow.close();
+            break;
+    }
 });
 
 };

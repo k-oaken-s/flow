@@ -63,6 +63,8 @@ interface ElectronAPI {
   notifyThemeChanged: (isDark: boolean) => void;
 
   requestInitialTheme: () => Promise<void>;
+
+  windowControl: (action: 'minimize' | 'maximize' | 'close') => void;
 }
 
 declare global {
@@ -206,4 +208,8 @@ getStatistics: () => ipcRenderer.invoke('get-statistics'),
   },
 
   requestInitialTheme: () => ipcRenderer.invoke('request-initial-theme'),
+
+  windowControl: (action: 'minimize' | 'maximize' | 'close') => {
+    ipcRenderer.send('window-control', action);
+  },
 });
