@@ -59,6 +59,13 @@ interface ElectronAPI extends FileSystemAPI {
     path: string;
     content: any;
   } | null>;
+
+  onMenuSelectFiles: (callback: () => void) => () => void;
+  onMenuSelectFolder: (callback: () => void) => () => void;
+  onMenuOpenStorePath: (callback: () => void) => () => void;
+  onMenuShowVersion: (callback: () => void) => () => void;
+
+  requestInitialTheme: () => Promise<boolean>;
 }
 
 interface Statistics {

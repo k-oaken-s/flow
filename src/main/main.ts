@@ -1,8 +1,8 @@
-import StoreManager, { VideoFile } from './store';
+import StoreManager, { VideoFile, initializeStore, getStore } from './store';
 import type { FSWatcher } from 'chokidar';
-import { store, resetStore } from './store';  // resetStoreをインポート
+import { app, BrowserWindow, ipcMain, dialog, shell, Menu, MenuItemConstructorOptions } from 'electron';
+import { promisify } from 'util';
 
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');  // 通常のfsを使用
 let sharp;
@@ -25,8 +25,6 @@ try {
 const ffmpeg = require('fluent-ffmpeg');
 const chokidar = require('chokidar');
 
-const { promisify } = require('util');
-
 // グローバル定数の定義
 const videoExtensions = ['.mp4', '.avi', '.mkv', '.mov', '.wmv'];
 const defaultThumbnailSettings = {
@@ -38,13 +36,12 @@ const defaultThumbnailSettings = {
 
 let watchers: FSWatcher[] = [];
 
-let mainWindow = null;
-let store;
-let storeManager;
+let mainWindow: BrowserWindow | null = null;
+let storeManager: StoreManager | null = null;
+let isDarkMode = false;  // 初期値をfalseに設定
 
 const readdirAsync = promisify(fs.readdir);
 const mkdirAsync = promisify(fs.mkdir);
-
 
 async function generateThumbnails(
   videoId: string,
@@ -294,36 +291,17 @@ function setupWatchFolders() {
   }
 }
 
-async function loadStore() {
-  try {
-      const Store = (await import('electron-store')).default;
-      store = new Store({
-          name: 'flow-data',
-          defaults: {
-              videos: [],
-              watchFolders: [],
-              settings: {
-                  thumbnails: {
-                      maxCount: 20,
-                      quality: 80,
-                      width: 320,
-                      height: 180
-                  }
-              }
-          }
-      });
-
-      // StoreManagerの初期化
-      storeManager = new StoreManager();
-      await storeManager.initializeStore();
-
-      console.log('Store and StoreManager initialized successfully');
-  } catch (error) {
-      console.error('Error in loadStore:', error);
-      throw error;
-  }
+// ストアの初期化関数を修正
+async function initializeApp() {
+    try {
+        storeManager = await initializeStore();
+        isDarkMode = storeManager.getTheme().isDarkMode;
+        return true;
+    } catch (error) {
+        console.error('Failed to initialize app:', error);
+        throw error;
+    }
 }
-
 
 function createWindow() {
   console.log('Creating window...');
@@ -350,19 +328,114 @@ function createWindow() {
 
   console.log('Preload script path:', preloadPath);
 
-  const indexPath = path.join(__dirname, '..', 'index.html');
-  console.log('Loading index from:', indexPath);
+  // メニューバーの作成
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: 'ファイル',
+      submenu: [
+        {
+          label: 'ファイルを追加',
+          click: () => {
+            mainWindow?.webContents.send('menu-select-files');
+          }
+        },
+        {
+          label: 'フォルダを追加',
+          click: () => {
+            mainWindow?.webContents.send('menu-select-folder');
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'データをリセット',
+          click: () => {
+            mainWindow?.webContents.send('menu-reset-data');
+          }
+        },
+        { type: 'separator' },
+        { role: 'quit', label: '終了' }
+      ]
+    },
+    {
+        label: 'タグ',
+        submenu: [
+            {
+                label: 'タグ管理',
+                click: () => {
+                    mainWindow?.webContents.send('menu-open-tag-manager');
+                }
+            }
+        ]
+    },
+    {
+        label: '表示',
+        submenu: [
+            {
+                label: 'ダークモード',
+                type: 'checkbox',
+                checked: isDarkMode,
+                click: (menuItem) => {
+                    isDarkMode = menuItem.checked;
+                    storeManager?.setTheme(isDarkMode);
+                    mainWindow?.webContents.send('menu-toggle-theme', isDarkMode);
+                }
+            },
+            { type: 'separator' },
+            { role: 'reload', label: 'リロード' },
+            { role: 'forceReload', label: '強制リロード' },
+            { role: 'toggleDevTools', label: '開発者ツール' },
+        ]
+    },
+    {
+        label: 'ヘルプ',
+        submenu: [
+            {
+                label: 'データフォルダを開く',
+                click: () => {
+                    mainWindow?.webContents.send('menu-open-store-path');
+                }
+            },
+            { type: 'separator' },
+            {
+                label: 'バージョン情報',
+                click: () => {
+                    mainWindow?.webContents.send('menu-show-version');
+                }
+            }
+        ]
+    }
+  ];
 
-  mainWindow.loadFile(indexPath);
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
 
+  // テーマ変更時の処理を修正
+  ipcMain.on('theme-changed', (_, dark: boolean) => {
+    isDarkMode = dark;
+    storeManager?.setTheme(isDarkMode);
+    const menu = Menu.getApplicationMenu();
+    const viewMenu = menu?.items.find(item => item.label === '表示');
+    const darkModeItem = viewMenu?.submenu?.items.find(item => item.label === 'ダークモード');
+    if (darkModeItem) {
+      darkModeItem.checked = isDarkMode;
+    }
+  });
+
+  // ウィンドウの読み込み完了時の処理を一箇所にまとめる
   mainWindow.webContents.on('did-finish-load', () => {
     console.log('Window loaded successfully');
+    // 初期テーマをレンダラーに通知
+    mainWindow?.webContents.send('menu-toggle-theme', isDarkMode);
   });
+
+  const indexPath = path.join(__dirname, '..', 'index.html');
+  console.log('Loading index from:', indexPath);
+  mainWindow.loadFile(indexPath);
 }
 
 function setupIpcHandlers() {
   ipcMain.handle('select-files', async () => {
-    if (!mainWindow) return [];
+    if (!mainWindow || !storeManager) return [];
     
     try {
       const result = await dialog.showOpenDialog(mainWindow, {
@@ -621,7 +694,7 @@ async function scanWatchFolder(folderPath: string) {
 }
 
   ipcMain.handle('update-video-metadata', async (_, videoId, metadata, thumbnails) => {
-    const videos = store.get('videos');
+    const videos = storeManager.getVideos();
     const videoIndex = videos.findIndex(v => v.id === videoId);
     if (videoIndex !== -1) {
       videos[videoIndex] = {
@@ -631,13 +704,13 @@ async function scanWatchFolder(folderPath: string) {
         processingStatus: 'completed',
         processingProgress: 100
       };
-      store.set('videos', videos);
+      storeManager.setVideos(videos);
     }
   });
 
   ipcMain.handle('remove-video', async (_, id) => {
-    const videos = store.get('videos').filter(v => v.id !== id);
-    store.set('videos', videos);
+    const videos = storeManager.getVideos().filter(v => v.id !== id);
+    storeManager.setVideos(videos);
   });
 
   ipcMain.handle('retry-thumbnails', async (_, id) => {
@@ -663,7 +736,7 @@ async function scanWatchFolder(folderPath: string) {
     try {
       const thumbnailPath = path.join(path.dirname(videoPath), 'thumbnail.jpg');
       await createThumbnail(videoPath, thumbnailPath);
-      store.set('videos', [...store.get('videos'), { videoPath, thumbnailPath }]);
+      storeManager.addVideo(videoPath, thumbnailPath);
       console.log('Added 1 new video');
     } catch (error) {
       console.error('Error adding video:', error);
@@ -804,6 +877,11 @@ ipcMain.handle('get-video', async (_, videoId: string) => {
     return storeManager.getVideo(videoId);
 });
 
+// 初期テーマを返すハンドラー
+ipcMain.handle('request-initial-theme', () => {
+    return isDarkMode;
+});
+
 };
 
 function setupFfmpeg() {
@@ -826,15 +904,22 @@ function setupFfmpeg() {
 app.whenReady().then(async () => {
   try {
     console.log('Initializing store...');
-    await loadStore();
+    await initializeApp();
     
     console.log('Creating window...');
     createWindow();
     
+    // メニューの初期状態を設定
+    const menu = Menu.getApplicationMenu();
+    const viewMenu = menu?.items.find(item => item.label === '表示');
+    const darkModeItem = viewMenu?.submenu?.items.find(item => item.label === 'ダークモード');
+    if (darkModeItem) {
+        darkModeItem.checked = isDarkMode;
+    }
+    
     console.log('Setting up IPC handlers...');
     setupIpcHandlers();
 
-    // 監視フォルダの初期スキャンと監視設定
     console.log('Scanning watch folders...');
     await scanAllWatchFolders();
     

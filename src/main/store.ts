@@ -44,6 +44,26 @@ export interface StoreSchema {
         };
     };
     tags: Tag[];
+    theme: {
+        isDarkMode: boolean;
+    };
+}
+
+let storeInstance: StoreManager | null = null;
+
+export async function initializeStore() {
+    if (!storeInstance) {
+        storeInstance = new StoreManager();
+        await storeInstance.initializeStore();
+    }
+    return storeInstance;
+}
+
+export function getStore() {
+    if (!storeInstance) {
+        throw new Error('Store not initialized');
+    }
+    return storeInstance;
 }
 
 class StoreManager {
@@ -65,7 +85,10 @@ class StoreManager {
                             height: 180
                         }
                     },
-                    tags: []
+                    tags: [],
+                    theme: {
+                        isDarkMode: false
+                    }
                 }
             });
         } catch (error) {
@@ -294,18 +317,32 @@ class StoreManager {
         }
         this.store.clear();
     }
+
+    // テーマ設定の取得
+    getTheme(): { isDarkMode: boolean } {
+        if (!this.store) {
+            return { isDarkMode: false };
+        }
+        return this.store.get('theme') || { isDarkMode: false };
+    }
+
+    // テーマ設定の更新
+    setTheme(isDarkMode: boolean): void {
+        if (!this.store) return;
+        this.store.set('theme', { isDarkMode });
+    }
 }
 
 export async function resetStore() {
     // ストアが初期化されていない場合は初期化
-    if (!store.store) {
-        await store.initializeStore();
+    if (!storeInstance) {
+        await initializeStore();
     }
     
-    store.clear();
+    storeInstance?.clear();
     
     // デフォルト値を再設定
-    store.store?.set({
+    storeInstance?.store?.set({
         videos: [],
         watchFolders: [],
         settings: {
@@ -316,7 +353,10 @@ export async function resetStore() {
                 height: 180
             }
         },
-        tags: []
+        tags: [],
+        theme: {
+            isDarkMode: false
+        }
     });
     
     // サムネイルディレクトリのパスを取得
@@ -334,7 +374,5 @@ export async function resetStore() {
         }
     }
 }
-
-export const store = new StoreManager();
 
 export default StoreManager;

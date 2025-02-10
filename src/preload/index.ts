@@ -46,6 +46,23 @@ interface ElectronAPI {
   openStorePath: () => Promise<void>;
 
   getVideo: (videoId: string) => Promise<any>;
+
+  onMenuSelectFiles: (callback: () => void) => () => void;
+  onMenuSelectFolder: (callback: () => void) => () => void;
+
+  onMenuOpenTagManager: (callback: () => void) => () => void;
+
+  onMenuResetData: (callback: () => void) => () => void;
+
+  onMenuOpenStorePath: (callback: () => void) => () => void;
+
+  onMenuShowVersion: (callback: () => void) => () => void;
+
+  onMenuToggleTheme: (callback: (isDark: boolean) => void) => () => void;
+
+  notifyThemeChanged: (isDark: boolean) => void;
+
+  requestInitialTheme: () => Promise<void>;
 }
 
 declare global {
@@ -128,4 +145,65 @@ getStatistics: () => ipcRenderer.invoke('get-statistics'),
   openStorePath: () => ipcRenderer.invoke('open-store-path'),
 
   getVideo: (videoId: string) => ipcRenderer.invoke('get-video', videoId),
+
+  onMenuSelectFiles: (callback: () => void) => {
+    const subscription = () => callback();
+    ipcRenderer.on('menu-select-files', subscription);
+    return () => {
+      ipcRenderer.removeListener('menu-select-files', subscription);
+    };
+  },
+  onMenuSelectFolder: (callback: () => void) => {
+    const subscription = () => callback();
+    ipcRenderer.on('menu-select-folder', subscription);
+    return () => {
+      ipcRenderer.removeListener('menu-select-folder', subscription);
+    };
+  },
+
+  onMenuOpenTagManager: (callback: () => void) => {
+    const subscription = () => callback();
+    ipcRenderer.on('menu-open-tag-manager', subscription);
+    return () => {
+      ipcRenderer.removeListener('menu-open-tag-manager', subscription);
+    };
+  },
+
+  onMenuResetData: (callback: () => void) => {
+    const subscription = () => callback();
+    ipcRenderer.on('menu-reset-data', subscription);
+    return () => {
+      ipcRenderer.removeListener('menu-reset-data', subscription);
+    };
+  },
+
+  onMenuOpenStorePath: (callback: () => void) => {
+    const subscription = () => callback();
+    ipcRenderer.on('menu-open-store-path', subscription);
+    return () => {
+      ipcRenderer.removeListener('menu-open-store-path', subscription);
+    };
+  },
+
+  onMenuShowVersion: (callback: () => void) => {
+    const subscription = () => callback();
+    ipcRenderer.on('menu-show-version', subscription);
+    return () => {
+      ipcRenderer.removeListener('menu-show-version', subscription);
+    };
+  },
+
+  onMenuToggleTheme: (callback: (isDark: boolean) => void) => {
+    const subscription = (_: any, isDark: boolean) => callback(isDark);
+    ipcRenderer.on('menu-toggle-theme', subscription);
+    return () => {
+      ipcRenderer.removeListener('menu-toggle-theme', subscription);
+    };
+  },
+
+  notifyThemeChanged: (isDark: boolean) => {
+    ipcRenderer.send('theme-changed', isDark);
+  },
+
+  requestInitialTheme: () => ipcRenderer.invoke('request-initial-theme'),
 });
