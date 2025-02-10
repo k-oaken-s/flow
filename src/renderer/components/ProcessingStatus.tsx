@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 
 interface ProcessingVideo {
     id: string;
@@ -8,11 +9,10 @@ interface ProcessingVideo {
 
 const ProcessingStatus: React.FC = () => {
     const [processingVideos, setProcessingVideos] = useState<ProcessingVideo[]>([]);
-    const [totalCount, setTotalCount] = useState(0);
-    const [completedCount, setCompletedCount] = useState(0);
+    const totalCount = processingVideos.length;
+    const completedCount = processingVideos.filter(v => v.progress === 100).length;
 
     useEffect(() => {
-        // 初期状態で処理中の動画を取得
         const loadProcessingVideos = async () => {
             try {
                 const videos = await window.electronAPI.getVideos();
@@ -24,24 +24,10 @@ const ProcessingStatus: React.FC = () => {
                         progress: v.processingProgress || 0
                     }));
                 setProcessingVideos(processing);
-
-                // 処理中の総数と完了数を計算
-                if (processing.length > 0) {
-                    setTotalCount(processing.length);
-                    const completed = videos.filter(v =>
-                        v.processingStatus === 'completed' &&
-                        v.added >= Math.min(...processing.map(p => p.added))
-                    ).length;
-                    setCompletedCount(completed);
-                } else {
-                    setTotalCount(0);
-                    setCompletedCount(0);
-                }
             } catch (error) {
                 console.error('Error loading processing videos:', error);
             }
         };
-        loadProcessingVideos();
 
         // 進捗更新の購読
         const unsubscribeProgress = window.electronAPI.onThumbnailProgress(({ videoId, progress }) => {
@@ -59,6 +45,8 @@ const ProcessingStatus: React.FC = () => {
         // 新しい動画が追加された時の処理
         const unsubscribeVideosUpdated = window.electronAPI.onVideosUpdated(loadProcessingVideos);
 
+        loadProcessingVideos();
+
         return () => {
             unsubscribeProgress();
             unsubscribeVideosUpdated();
@@ -70,19 +58,41 @@ const ProcessingStatus: React.FC = () => {
     }
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 bg-gray-800 text-white p-2 z-50">
-            <div className="container mx-auto flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                    <span className="animate-spin">⚙️</span>
-                    <span>サムネイル生成中... ({completedCount}/{totalCount})</span>
-                </div>
-                <div className="text-sm text-gray-300">
-                    {processingVideos.map(video => (
-                        <div key={video.id} className="flex items-center space-x-2">
-                            <span>{video.filename}</span>
-                            <span>{video.progress}%</span>
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 shadow-lg">
+            <div className="max-w-7xl mx-auto p-3">
+                <div className="flex items-center justify-between">
+                    {/* 左側: 全体の進捗状況 */}
+                    <div className="flex items-center space-x-3">
+                        <div className="flex items-center text-blue-600 dark:text-blue-400">
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            <span className="font-medium">サムネイル生成中</span>
                         </div>
-                    ))}
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {completedCount}/{totalCount}
+                        </div>
+                    </div>
+
+                    {/* 右側: 個別の進捗状況 */}
+                    <div className="flex items-center space-x-4">
+                        {processingVideos.map(video => (
+                            <div key={video.id} className="flex items-center space-x-2">
+                                <div className="max-w-[200px]">
+                                    <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                                        {video.filename}
+                                    </div>
+                                    <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-blue-500 transition-all duration-300 ease-out rounded-full"
+                                            style={{ width: `${video.progress}%` }}
+                                        />
+                                    </div>
+                                </div>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 min-w-[40px]">
+                                    {video.progress}%
+                                </span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

@@ -125,30 +125,30 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-all hover:shadow-xl">
             <div className="p-3">
                 {/* 3カラムグリッドレイアウト */}
                 <div className="grid grid-cols-3 gap-2 mb-2">
                     {/* 左カラム: ファイル名とタグ */}
                     <div className="flex flex-col justify-between">
-                        <h3 className="font-medium text-gray-800 dark:text-white text-sm truncate" title={video.filename}>
+                        <h3 className="font-medium text-gray-800 dark:text-white text-sm truncate hover:text-gray-600 dark:hover:text-gray-300 transition-colors" title={video.filename}>
                             {video.filename}
                         </h3>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setIsTagEditModalOpen(true);
                                 }}
-                                className="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                             >
-                                <Tags className="w-3 h-3 text-gray-400" />
+                                <Tags className="w-3.5 h-3.5 text-gray-400" />
                             </button>
                             <div className="flex flex-wrap gap-1">
                                 {getSelectedTags().map(tag => (
                                     <span
                                         key={tag.id}
-                                        className="px-1.5 py-0.5 text-xs rounded-full text-white"
+                                        className="px-2 py-0.5 text-xs rounded-full text-white shadow-sm transition-transform hover:scale-105"
                                         style={{ backgroundColor: tag.color }}
                                     >
                                         {tag.name}
@@ -161,12 +161,12 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
                     {/* 中央カラム: メタ情報 */}
                     <div className="flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400">
                         <div className="flex items-center justify-center gap-2">
-                            <span>{video.metadata?.duration ? formatDuration(video.metadata.duration) : '--:--'}</span>
-                            <span>•</span>
+                            <span className="font-medium">{video.metadata?.duration ? formatDuration(video.metadata.duration) : '--:--'}</span>
+                            <span className="text-gray-300 dark:text-gray-600">•</span>
                             <span>{formatFileSize(video.fileSize)}</span>
                         </div>
                         <div className="flex items-center justify-center">
-                            <span>{video.playCount || 0}回再生</span>
+                            <span className="text-gray-400 dark:text-gray-500">{video.playCount || 0}回再生</span>
                         </div>
                     </div>
 
@@ -178,7 +178,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
                             </span>
                             <button
                                 onClick={handleToggleFavorite}
-                                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all hover:scale-105"
                             >
                                 {video.isFavorite ? (
                                     <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
@@ -210,17 +210,16 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
                         <span className="text-gray-500">サムネイル生成中...</span>
                     </div>
                 ) : currentVideo.thumbnails && currentVideo.thumbnails.length > 0 ? (
-                    <div className="grid grid-cols-10 grid-rows-2 gap-0">
+                    <div className="grid grid-cols-10 grid-rows-2 gap-0.5">
                         {currentVideo.thumbnails.map((thumbnail, index) => (
                             <div
                                 key={index}
-                                className="relative aspect-video"
+                                className="relative aspect-video group"
                             >
                                 <img
                                     src={`file://${thumbnail}`}
                                     alt={`${currentVideo.filename} thumbnail ${index + 1}`}
-                                    className={`w-full h-full object-cover ${currentThumbnailIndex === index ? 'ring-2 ring-blue-500' : ''
-                                        }`}
+                                    className="w-full h-full object-cover"
                                     onClick={() => setCurrentThumbnailIndex(index)}
                                     onError={(e) => {
                                         console.error('Error loading thumbnail:', {
