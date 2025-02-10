@@ -15,6 +15,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
     const [currentThumbnailIndex, setCurrentThumbnailIndex] = useState(0);
     const [isProcessing, setIsProcessing] = useState(video.processingStatus === 'processing');
     const [currentVideo, setCurrentVideo] = useState(video);
+    const [isFavorite, setIsFavorite] = useState(video.isFavorite);
     const [tags, setTags] = useState<Tag[]>([]);
     const [isTagEditModalOpen, setIsTagEditModalOpen] = useState(false);
 
@@ -108,9 +109,10 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
     const handleToggleFavorite = async (e: React.MouseEvent) => {
         e.stopPropagation();
         try {
+            setIsFavorite(!isFavorite);
             await window.electronAPI.toggleFavorite(video.id);
-            onUpdated();
         } catch (error) {
+            setIsFavorite(isFavorite);
             console.error('Error toggling favorite:', error);
         }
     };
@@ -180,7 +182,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, onUpdat
                                 onClick={handleToggleFavorite}
                                 className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all hover:scale-105"
                             >
-                                {video.isFavorite ? (
+                                {isFavorite ? (
                                     <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
                                 ) : (
                                     <StarOff className="w-4 h-4 text-gray-400" />

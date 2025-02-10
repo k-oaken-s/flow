@@ -9,15 +9,15 @@ import ProcessingStatus from './components/ProcessingStatus';
 const App = () => {
     return (
         <ThemeProvider>
-            <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-                <div className="w-80 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 shadow-lg">
+            <div className="flex h-screen">
+                <div className="w-64 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 shadow-sm">
                     <Sidebar />
                 </div>
                 <div className="flex-1 flex flex-col relative">
-                    <div className="flex-1 overflow-auto pb-16">
+                    <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
                         <MainContent />
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0">
+                    <div className="absolute bottom-0 left-0 right-0 z-10">
                         <ProcessingStatus />
                     </div>
                 </div>
