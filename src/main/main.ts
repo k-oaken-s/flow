@@ -328,13 +328,17 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: preloadPath,
-      devTools: true,
+      devTools: process.env.NODE_ENV === 'development',
       sandbox: false,
       webSecurity: true
     }
   });
 
-  mainWindow.webContents.openDevTools({ mode: 'detach' });
+  // 開発環境でのみDevToolsを開く
+  if (process.env.NODE_ENV === 'development') {
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
+  }
+
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
     console.error('Load failure:', errorCode, errorDescription);
   });
