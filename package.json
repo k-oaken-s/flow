@@ -154,7 +154,8 @@
         }
       ],
       "artifactName": "${productName}-${version}-${arch}-win.${ext}",
-      "icon": "build/icon.ico"
+      "icon": "build/icon.ico",
+      "requiresOS": ">=10.0.0"
     },
     "linux": {
       "icon": "build/icons"
